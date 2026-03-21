@@ -1,128 +1,276 @@
+<div align="center">
+
 # TuneForge
-- Language: DE
-- Audience: Public
-- Last Sync: 2026-03-19
-- Pair: README.md
 
-[![Status](https://img.shields.io/badge/status-Technical%20Preview-orange)](docs/VALIDATION_MATRIX-DE.md)
-[![Lizenz](https://img.shields.io/badge/license-MIT-lightgrey)](LICENSE)
+**Benchmark-first Fine-Tuning-Framework fuer lokale LLMs auf eigener Hardware.**
 
-TuneForge ist ein Open-Source-Framework fuer Self-Finetuning, Benchmarking und Modell-Publishing auf Basis des `karpathy/autoresearch`-Gedankens und wird fuer ein eigenes oeffentliches GitHub-Repo vorbereitet.
+[![Lizenz: MIT](https://img.shields.io/badge/Lizenz-MIT-blue.svg)](LICENSE)
+[![Python 3.10+](https://img.shields.io/badge/Python-3.10%2B-3776AB.svg)](https://python.org)
+[![Docker](https://img.shields.io/badge/Docker-NVIDIA%20CUDA%2012.4-2496ED.svg)](Dockerfile.finetune)
+[![Status](https://img.shields.io/badge/Status-Technical%20Preview-orange.svg)](docs/VALIDATION_MATRIX-DE.md)
+[![EU AI Act](https://img.shields.io/badge/EU%20AI%20Act-Aware-004494.svg)](COMPLIANCE_STATEMENT-DE.md)
 
-Aktueller oeffentlicher Status: **Technical Preview**.
+[English version](README.md)
 
-TuneForge ist als auditfaehiges Engineering-Paket fuer lokale und kontrollierte Modellanpassung gedacht. Es ist Oesterreich-aware, DSGVO-aware und EU-AI-Act-aware. Es ist **keine Rechtsberatung** und garantiert **keine** regulatorische Konformitaet.
+</div>
 
-English overview: [README.md](README.md)  
-Oeffentlicher Repo-Index: [REPO_INDEX-DE.md](REPO_INDEX-DE.md)
+---
 
-## Was dieses Repo liefert
+## Inhaltsverzeichnis
 
-- benchmark-first Research- und Fine-Tune-Workflows
-- Release-Bundles fuer Hugging Face und Ollama-kompatible Auslieferung
-- Validation Registry und Private-Pilot-Evidenzmodell
-- zweisprachige Governance-, Trainings- und Compliance-Dokumentation
-- oeffentliche Templates fuer Model Card, Provenance, Risk Review und Release Approval
+- [Ueberblick](#ueberblick)
+- [Architektur](#architektur)
+- [Features](#features)
+- [Schnellstart](#schnellstart)
+- [Konfiguration](#konfiguration)
+- [Unterstuetzte Modelle und GPU-Tiers](#unterstuetzte-modelle-und-gpu-tiers)
+- [Projektstruktur](#projektstruktur)
+- [CI/CD](#cicd)
+- [Compliance](#compliance)
+- [Attribution](#attribution)
+- [Contributing](#contributing)
+- [Lizenz](#lizenz)
+
+---
+
+## Ueberblick
+
+TuneForge ist ein Open-Source, auditfaehiges Engineering-Framework fuer QLoRA-Fine-Tuning, Benchmarking und kontrolliertes Model-Publishing. Aufgebaut auf [karpathy/autoresearch](https://github.com/karpathy/autoresearch), liefert es eine vollstaendige Pipeline von der Datenvorbereitung ueber Training und Evaluation bis zum Export nach Hugging Face und Ollama.
+
+Entwickelt fuer Teams, die Modelle auf eigener Hardware betreiben — mit lueckenloser Provenance-Verfolgung, reproduzierbaren Benchmarks und EU-regulatorischem Bewusstsein von Anfang an.
+
+> **Aktueller Status: Technical Preview.** Benchmark-Claims gelten nur fuer das dokumentierte Hardware-Budget. Dies ist keine Rechtsberatung und garantiert keine regulatorische Konformitaet.
+
+## Architektur
+
+```mermaid
+flowchart LR
+    subgraph Input
+        A[Trainingsdaten<br/>JSONL / Alpaca / ShareGPT]
+        B[Basismodell<br/>HuggingFace Hub]
+    end
+
+    subgraph Pipeline["TuneForge Pipeline"]
+        direction LR
+        C[Datenvorbereitung<br/>Format-Normalisierung<br/>Train/Eval Split]
+        D[QLoRA Fine-Tuning<br/>PEFT + TRL / Unsloth<br/>4-Bit Quantisierung]
+        E[Evaluation<br/>Loss · Perplexity<br/>VRAM-Tracking]
+        F[Export & Publish<br/>LoRA Adapter<br/>GGUF · Modelfile]
+    end
+
+    subgraph Output
+        G[HuggingFace Hub<br/>Model Card · Manifest]
+        H[Ollama<br/>GGUF · Modelfile]
+        I[Release Bundle<br/>Benchmarks · Attestation<br/>Lizenz-Manifest]
+    end
+
+    A --> C
+    B --> D
+    C --> D
+    D --> E
+    E --> F
+    F --> G
+    F --> H
+    F --> I
+```
+
+```mermaid
+flowchart TB
+    subgraph Agent["Agent Loop (autoresearch)"]
+        J[LLM Provider<br/>Claude · OpenAI · Ollama<br/>OpenRouter · Kimi]
+        K[Experiment Runner<br/>Vorschlag → Training → Evaluation<br/>Behalten oder Verwerfen]
+    end
+
+    subgraph Core["Core Runtime"]
+        L[QLoRATrainer<br/>peft_trl / unsloth Backend]
+        M[Model Publisher<br/>Bundle · HF · GGUF]
+        N[Validation Registry<br/>Hardware-Tiers · Attestation]
+    end
+
+    J --> K
+    K --> L
+    L --> M
+    L --> N
+```
+
+## Features
+
+- **Dual Backend** — Wechsel zwischen `transformers + peft + trl` und `unsloth` per Config. Gleiches Interface, gleiche Metriken.
+- **Hardware-gestufte Configs** — Vorkonfigurierte Settings fuer 8 GB, 12 GB und 24 GB+ GPUs. Kein Raten noetig.
+- **Autonomer Agent Loop** — Provider-agnostische Research-Schleife (Claude, OpenAI, Ollama, OpenRouter), die automatisch vorschlaegt, trainiert und evaluiert.
+- **Kontrollierte Release Bundles** — Jeder Export enthaelt Model Card, Training-Manifest, Benchmark-Summary, Lizenz-Manifest, Environment-Snapshot und Tester-Attestation.
+- **GGUF + Ollama Export** — Adapter zu GGUF konvertieren und Modelfiles fuer lokales Deployment generieren.
+- **Audit Trail** — VRAM-Tracking, reproduzierbare Seeds, Git-SHA-Provenance, strukturiertes Logging.
+- **Zweisprachige Dokumentation** — Vollstaendige EN/DE-Dokumentation, Governance-Templates und Compliance-Packs.
 
 ## Schnellstart
 
+### Lokales Setup
+
 ```bash
-git clone https://github.com/AI-Engineerings-at/Playbook01.git
-cd Playbook01/products/tuneforge
+git clone https://github.com/AI-Engineerings-at/tuneforge.git
+cd tuneforge
+
 python -m venv .venv
-. .venv/Scripts/Activate.ps1
-python -m pip install --upgrade pip
-python -m pip install -e .[llm,finetune,dev]
+source .venv/bin/activate        # Linux/macOS
+# .venv\Scripts\activate          # Windows
+
+pip install --upgrade pip
+pip install -e ".[llm,finetune,dev]"
+
+# Tests ausfuehren
 python -m pytest -q tests
 ```
 
-Docker-Preview-Oberflaeche:
+### Docker (NVIDIA GPU erforderlich)
 
 ```bash
-docker compose -f docker-compose.finetune.yml up --build
+# Fine-Tuning Pipeline
+AUTORESEARCH_DOMAIN=sps-plc docker compose -f docker-compose.finetune.yml up --build
 ```
 
-Kanonisches Image-Ziel:
+### Fine-Tuning ausfuehren
 
-- `ghcr.io/ai-engineerings-at/tuneforge-studio:<semver>`
-- Images werden von GitHub Actions gebaut und publiziert, niemals ins Git committed
+```bash
+# QLoRA-Training mit YAML-Config
+python -m finetune.trainer --config finetune/configs/your-domain.yaml --eval
 
-## Oeffentliche Repo-Regeln
+# Agent Loop (autonome Forschung)
+python agent_loop.py --provider ollama --model qwen2.5-coder:7b
+```
 
-- keine gebauten Docker-Images im Git
-- keine Secrets oder echten `.env`-Dateien im Git
-- keine generierten Modellartefakte im Git
-- keine unklaren Compliance- oder Verifikationsclaims
-- keine verifizierten Hardware-Labels ohne Registry-Evidenz
+### Kanonisches Docker Image
 
-Beispielvariablen liegen in [.env.example](.env.example). Third-Party-Attribution liegt in [THIRD_PARTY.md](THIRD_PARTY.md) und [FORK.md](FORK.md).
+```
+ghcr.io/ai-engineerings-at/tuneforge-studio:<semver>
+```
 
-## Kerndokumentation
+Images werden von GitHub Actions gebaut und publiziert. Nie ins Git committed.
 
-- Repo-Map: [REPO_INDEX-DE.md](REPO_INDEX-DE.md)
-- Architektur: [docs/ARCHITECTURE-DE.md](docs/ARCHITECTURE-DE.md)
-- Validation Matrix: [docs/VALIDATION_MATRIX-DE.md](docs/VALIDATION_MATRIX-DE.md)
-- Setup: [docs/SETUP-DE.md](docs/SETUP-DE.md)
-- Training SOP: [docs/TRAINING_SOP-DE.md](docs/TRAINING_SOP-DE.md)
-- Modell-Dokumentations-SOP: [docs/MODEL_DOCUMENTATION_SOP-DE.md](docs/MODEL_DOCUMENTATION_SOP-DE.md)
-- Logging- und Audit-Protokoll: [docs/LOGGING_AUDIT_PROTOCOL-DE.md](docs/LOGGING_AUDIT_PROTOCOL-DE.md)
-- Compliance Pack: [docs/COMPLIANCE_PACK-DE.md](docs/COMPLIANCE_PACK-DE.md)
-- Upgrade-Plan: [docs/UPGRADE_PLAN-DE.md](docs/UPGRADE_PLAN-DE.md)
-- Patch-Plan: [docs/PATCH_PLAN-DE.md](docs/PATCH_PLAN-DE.md)
-- Private-Pilot-Runbook: [validation/PRIVATE_PILOT_RUNBOOK-DE.md](validation/PRIVATE_PILOT_RUNBOOK-DE.md)
+## Konfiguration
 
-## Governance-Position
+### Umgebungsvariablen
 
-TuneForge-Releases muessen durch Evidenz begrenzt bleiben:
+| Variable | Beschreibung | Erforderlich |
+|----------|-------------|--------------|
+| `ANTHROPIC_API_KEY` | API-Key fuer Claude Provider | Fuer Claude Agent Loop |
+| `OPENROUTER_API_KEY` | API-Key fuer OpenRouter | Fuer OpenRouter Agent Loop |
+| `HF_TOKEN` | Hugging Face Access Token | Fuer Model Publishing |
+| `AUTORESEARCH_DOMAIN` | Ziel-Domain fuer Training | Fuer Docker Pipeline |
+| `NVIDIA_VISIBLE_DEVICES` | GPU-Device-Auswahl | Nur Docker |
 
-- Preview, bis die Validation Registry die deklarierten Hardware-Tiers belegt
-- Benchmark-Claims nur auf vergleichbaren Hardware-Budgets
-- Release-Bundles muessen Manifeste, Provenance und Limitierungen enthalten
-- Legal-/Compliance-Doks unterstuetzen Engineering-Review und Governance-Vorbereitung
-- oeffentliche Aussagen muessen zu Oesterreich-, DSGVO- und EU-AI-Act-Framing passen, ohne Rechtszertifizierung zu behaupten
+### QLoRA Training Config (YAML)
 
-## Referenziertes Legal-Data-Subsystem
+| Parameter | Default | Beschreibung |
+|-----------|---------|-------------|
+| `base_model` | `Qwen/Qwen2.5-Coder-7B-Instruct` | HuggingFace Model-ID |
+| `backend` | `peft_trl` | Training-Backend (`peft_trl` oder `unsloth`) |
+| `dataset_format` | `alpaca` | Eingabeformat (`alpaca`, `sharegpt`, etc.) |
+| `bits` | `4` | Quantisierungs-Bits (4-Bit QLoRA) |
+| `lora_r` | `16` | LoRA-Rang |
+| `lora_alpha` | `32` | LoRA-Alpha-Skalierung |
+| `learning_rate` | `2e-4` | Lernrate |
+| `max_steps` | `1000` | Maximale Trainingsschritte |
+| `max_seq_length` | `2048` | Maximale Sequenzlaenge |
+| `per_device_train_batch_size` | `4` | Batchgroesse pro GPU |
+| `gradient_accumulation_steps` | `4` | Gradienten-Akkumulation |
+| `primary_metric` | `eval_loss` | Zu optimierende Metrik |
 
-TuneForge dokumentiert `legal-scraper` als referenziertes Subsystem fuer Legal-Source-Ingestion und Provenance-Unterstuetzung. Es wird in dieser Phase nicht in den Produktcode vendored.
+## Unterstuetzte Modelle und GPU-Tiers
 
-Siehe: [docs/LEGAL_SOURCE_REFERENCES-DE.md](docs/LEGAL_SOURCE_REFERENCES-DE.md)
+### GPU-Tier-Konfigurationen
+
+| Tier | VRAM | Dataset | Modellgroesse | Seq Length | Batch Size | Einsatzzweck |
+|------|------|---------|--------------|------------|------------|--------------|
+| **Tier 1** | 6-8 GB | TinyStories | 384d / 3L | 256 | 16 | Schnelle Experimente, Validierung |
+| **Tier 2** | 10-12 GB | ClimbMix | 512d / 5L | 512 | 32 | Mittelklasse-Training |
+| **Tier 3** | 16-24 GB | ClimbMix | 768d / 8L | 2048 | 8 | Vollstaendige Trainingslaeufe |
+
+### QLoRA-Basismodelle
+
+| Modell | Parameter | Min VRAM (4-Bit) | Status |
+|--------|-----------|-----------------|--------|
+| Qwen2.5-Coder-7B-Instruct | 7B | ~8 GB | Standard |
+| Jedes HuggingFace CausalLM | Variiert | Variiert | Unterstuetzt via Config |
+
+### Hardware-Validierungs-Tiers
+
+| Tier | Hardware | Status |
+|------|----------|--------|
+| Tier A | RTX 3090 (24 GB) | Validierungsziel |
+| Tier B | A100 / H100 / 48 GB+ | Validierungsziel |
+| Nicht zugewiesen | Andere GPUs | Technical Preview |
+
+## Projektstruktur
+
+```
+tuneforge/
+├── train.py                  # autoresearch Trainingsschleife
+├── agent_loop.py             # Autonomer LLM-Agent fuer Forschung
+├── agent_config.py           # Agent-Konfiguration
+├── providers.py              # LLM-Provider-Abstraktion
+├── finetune/
+│   ├── trainer.py            # QLoRA Training Runtime
+│   └── model_publisher.py    # Release Bundle & HF Publishing
+├── datasets/
+│   ├── data_formats.py       # Format-Normalisierung
+│   └── synthetic_generator.py # Synthetische Datengenerierung
+├── configs/                  # GPU-Tier-Konfigurationen (JSON)
+├── validation/               # Validation Registry & Runbooks
+├── scripts/                  # CI-Checks & Release-Validierung
+├── docs/                     # Architektur, SOPs, Compliance
+├── templates/                # Model Card & Governance Templates
+├── docker-compose.finetune.yml
+├── Dockerfile.finetune
+└── pyproject.toml
+```
 
 ## CI/CD
 
-TuneForge nutzt GitHub Actions:
+GitHub Actions Pipelines:
 
-- Quality- und Public-Repo-Readiness in `.github/workflows/tuneforge-ci.yml`
-- Preview-Docker-Releases in `.github/workflows/tuneforge-release.yml`
-- Model-Bundle- und Hugging-Face-Publishing in `.github/workflows/tuneforge-model-publish.yml`
+| Workflow | Zweck |
+|----------|-------|
+| `tuneforge-ci.yml` | Quality Gates, Repo-Hygiene, Dokumentations-Paritaetschecks |
+| `tuneforge-release.yml` | Docker-Image-Build und Preview-Releases |
+| `tuneforge-model-publish.yml` | Model-Bundle-Packaging und HuggingFace-Publishing |
 
-Release-Automation haengt SBOMs, Checksummen, Validation-Registry-Snapshots und Release-Metadaten an. Secrets liegen nur in GitHub Secrets oder einem externen Vault, nie im Repo.
+Release-Automation haengt SBOMs, Checksummen, Validation-Registry-Snapshots und Release-Metadaten an. Secrets liegen nur in GitHub Secrets oder einem externen Vault — nie im Repository.
+
+## Compliance
+
+TuneForge ist mit EU-regulatorischem Bewusstsein entwickelt:
+
+- **EU AI Act** — Die Dokumentationsstruktur unterstuetzt Artikel 11 (Technische Dokumentation) und Artikel 13 (Transparenz) fuer Engineering Review und Governance-Vorbereitung.
+- **DSGVO** — Trainingsdaten-Provenance-Tracking, keine personenbezogenen Daten in Standard-Pipelines, Privacy Notes in Model Cards.
+- **Audit-Readiness** — Strukturiertes Logging, reproduzierbare Trainingslaeufe, Hardware-Attestation und Validation Registry.
+
+> Dies ist Engineering-Vorbereitung, keine Rechtszertifizierung. Fuer Compliance-Pflichten qualifizierten Rechtsbeistand konsultieren. Details: [COMPLIANCE_STATEMENT-DE.md](COMPLIANCE_STATEMENT-DE.md).
 
 ## Attribution
 
-TuneForge baut auf:
+Gebaut mit und auf:
 
-- [karpathy/autoresearch](https://github.com/karpathy/autoresearch)
-- `transformers`
-- `trl`
-- `peft`
-- `unsloth`
-- Hugging Face Hub
-- `llama.cpp`
-- Ollama
+- [karpathy/autoresearch](https://github.com/karpathy/autoresearch) — Research-Loop-Grundlage
+- [transformers](https://github.com/huggingface/transformers) — Model Loading und Tokenisierung
+- [peft](https://github.com/huggingface/peft) — Parameter-effizientes Fine-Tuning
+- [trl](https://github.com/huggingface/trl) — SFT Training
+- [unsloth](https://github.com/unslothai/unsloth) — Optimiertes Training-Backend
+- [llama.cpp](https://github.com/ggerganov/llama.cpp) — GGUF-Konvertierung
+- [Ollama](https://ollama.com) — Lokales Model-Deployment
 
-Details:
+Vollstaendige Attribution: [THIRD_PARTY.md](THIRD_PARTY.md) | [FORK.md](FORK.md) | [docs/CREDITS.md](docs/CREDITS.md)
 
-- [THIRD_PARTY.md](THIRD_PARTY.md)
-- [FORK.md](FORK.md)
-- [docs/CREDITS.md](docs/CREDITS.md)
-- [docs/REFERENCES.md](docs/REFERENCES.md)
+## Contributing
 
-## Support-Flaeche
+Beitraege sind willkommen. Bitte [CONTRIBUTING-DE.md](CONTRIBUTING-DE.md) lesen, bevor ein Pull Request eingereicht wird.
 
-- Contribution Guide: [CONTRIBUTING-DE.md](CONTRIBUTING-DE.md)
-- Support Guide: [SUPPORT-DE.md](SUPPORT-DE.md)
-- Security Policy: [SECURITY-DE.md](SECURITY-DE.md)
-- Compliance Statement: [COMPLIANCE_STATEMENT-DE.md](COMPLIANCE_STATEMENT-DE.md)
+- Sicherheitsprobleme: [SECURITY-DE.md](SECURITY-DE.md)
+- Support: [SUPPORT-DE.md](SUPPORT-DE.md)
 - Changelog: [CHANGELOG-DE.md](CHANGELOG-DE.md)
 
-Der TuneForge-Quellcode in diesem Produktordner bleibt unter der [MIT License](LICENSE).
+## Lizenz
+
+MIT License. Siehe [LICENSE](LICENSE) fuer Details.
+
+Copyright (c) 2026 AI Engineering
