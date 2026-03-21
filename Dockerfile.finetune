@@ -1,0 +1,22 @@
+FROM nvidia/cuda:12.4.1-devel-ubuntu22.04
+
+ENV PIP_DISABLE_PIP_VERSION_CHECK=1
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    python3.11 python3.11-dev python3.11-venv python3-pip \
+    git curl && \
+    rm -rf /var/lib/apt/lists/* && \
+    ln -sf /usr/bin/python3.11 /usr/bin/python3
+
+WORKDIR /app
+
+COPY requirements-finetune.txt .
+RUN python3 -m pip install --no-cache-dir --upgrade pip setuptools wheel && \
+    python3 -m pip install --no-cache-dir -r requirements-finetune.txt
+
+COPY finetune/ ./finetune/
+COPY datasets/ ./datasets/
+COPY entrypoint-finetune.sh .
+RUN chmod +x entrypoint-finetune.sh
+
+ENTRYPOINT ["./entrypoint-finetune.sh"]

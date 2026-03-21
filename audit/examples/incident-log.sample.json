@@ -1,0 +1,10 @@
+[
+  {
+    "incident_id": "INC-2026-03-19-001",
+    "severity": "high",
+    "opened_at": "2026-03-19T09:00:00Z",
+    "status": "closed",
+    "summary": "Release bundle validator rejected a candidate due to inconsistent hardware tier metadata.",
+    "impact": "Blocked public release until manifests were corrected."
+  }
+]

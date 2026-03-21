@@ -1,0 +1,24 @@
+# Legal/DSGVO control config — German legal texts
+# Keep this as the benchmark control until a newer candidate wins on a 3090.
+base_model: "LeoLM/leo-mistral-hessianai-7b"
+output_dir: "output/legal-dsgvo-7b"
+backend: "peft_trl"
+dataset_path: "datasets/generated/legal"
+dataset_format: "alpaca"
+primary_metric: "eval_loss"
+metric_goal: "minimize"
+lora_r: 16
+lora_alpha: 32
+lora_dropout: 0.0
+use_rslora: false
+target_modules: ["q_proj", "k_proj", "v_proj", "o_proj", "gate_proj", "up_proj", "down_proj"]
+bits: 4
+learning_rate: 2e-4
+max_steps: 3000
+per_device_train_batch_size: 4
+gradient_accumulation_steps: 4
+max_seq_length: 2048
+warmup_ratio: 0.03
+logging_steps: 10
+save_steps: 500
+eval_steps: 500

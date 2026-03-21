@@ -1,0 +1,32 @@
+# Python cache and local tooling
+__pycache__/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+*.pyc
+
+# Local training and release artifacts
+output/
+tmp/
+logs/
+*.safetensors
+*.gguf
+*.sqlite
+*.sqlite3
+*.db
+*.log
+train.py.bak
+
+# Generated datasets and experiment logs
+datasets/generated/
+results/
+
+# Local env and notebooks
+.env
+.env.*
+!.env.example
+.venv/
+*.ipynb_checkpoints
+
+# Frontend or package caches
+node_modules/

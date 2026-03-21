@@ -1,0 +1,18 @@
+# SPS/PLC Fine-Tuning Config — IEC 61131-3 Structured Text
+# Target: RTX 3090 (24GB) — QLoRA 4-bit
+base_model: "Qwen/Qwen2.5-Coder-7B-Instruct"
+output_dir: "output/sps-plc-7b"
+lora_r: 32
+lora_alpha: 64
+lora_dropout: 0.05
+target_modules: ["q_proj", "k_proj", "v_proj", "o_proj", "gate_proj", "up_proj", "down_proj"]
+bits: 4
+learning_rate: 1e-4
+max_steps: 2000
+per_device_train_batch_size: 2
+gradient_accumulation_steps: 8
+max_seq_length: 4096
+warmup_ratio: 0.05
+logging_steps: 5
+save_steps: 200
+eval_steps: 200

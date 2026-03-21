@@ -1,0 +1,9 @@
+[
+  {
+    "error_id": "ERR-UNSLOTH-MISSING",
+    "severity": "medium",
+    "summary": "Unsloth backend unavailable in the selected environment.",
+    "mitigation": "Install the finetune extra or fall back to peft_trl.",
+    "last_reviewed": "2026-03-19"
+  }
+]

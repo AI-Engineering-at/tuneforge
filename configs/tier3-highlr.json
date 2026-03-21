@@ -1,0 +1,19 @@
+{
+  "tier": "tier3-highlr",
+  "min_vram_mb": 15000,
+  "max_vram_mb": 99999,
+  "dataset": "tinystories",
+  "num_shards": 4,
+  "max_seq_len": 2048,
+  "vocab_size": 32768,
+  "eval_tokens": 20971520,
+  "depth": 8,
+  "n_head": 6,
+  "n_kv_head": 6,
+  "n_embd": 768,
+  "device_batch_size": 8,
+  "total_batch_size": 65536,
+  "window_pattern": "SSSL",
+  "learning_rate": 0.001,
+  "description": "Higher learning rate experiment (0.001 vs 0.0006)"
+}

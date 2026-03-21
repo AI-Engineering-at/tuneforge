@@ -1,0 +1,15 @@
+services:
+  tuneforge:
+    build: .
+    runtime: nvidia
+    environment:
+      - NVIDIA_VISIBLE_DEVICES=all
+    volumes:
+      - ./results:/app/results
+      - ./programs:/app/programs
+      - tuneforge-cache:/root/.cache/tuneforge
+    stdin_open: true
+    tty: true
+
+volumes:
+  tuneforge-cache:

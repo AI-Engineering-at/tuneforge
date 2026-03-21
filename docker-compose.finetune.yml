@@ -1,0 +1,28 @@
+# docker-compose.finetune.yml - TuneForge Studio fine-tune pipeline
+# Usage: AUTORESEARCH_DOMAIN=sps-plc docker compose -f docker-compose.finetune.yml up
+services:
+  finetune:
+    build:
+      context: .
+      dockerfile: Dockerfile.finetune
+    runtime: nvidia
+    environment:
+      - NVIDIA_VISIBLE_DEVICES=all
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
+      - HF_TOKEN=${HF_TOKEN:-}
+      - AUTORESEARCH_DOMAIN=${AUTORESEARCH_DOMAIN:-sps-plc}
+    volumes:
+      - ./finetune/configs:/app/finetune/configs
+      - ./datasets/generated:/app/datasets/generated
+      - ./output:/app/output
+      - finetune-cache:/root/.cache/tuneforge
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+
+volumes:
+  finetune-cache:

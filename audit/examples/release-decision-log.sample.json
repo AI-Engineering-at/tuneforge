@@ -1,0 +1,15 @@
+[
+  {
+    "release_id": "tuneforge-v0.2.0-preview",
+    "decision": "publish",
+    "status": "technical_preview",
+    "approved_by": [
+      "engineering-review",
+      "governance-review"
+    ],
+    "evidence_refs": [
+      "validation/registry.json",
+      "output/release-bundle/validation-result.json"
+    ]
+  }
+]

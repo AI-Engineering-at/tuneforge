@@ -1,0 +1,11 @@
+{
+  "cuda_version": "12.4",
+  "docker_image": "ghcr.io/ai-engineerings-at/tuneforge-studio:tuneforge-v0.2.0",
+  "driver_version": "551.86",
+  "gpu_model": "RTX 3090",
+  "gpu_vram_gb": 24,
+  "hardware": "RTX 3090",
+  "hardware_tier": "tier_a_rtx_3090_24gb",
+  "os_name": "Windows 11 Pro 24H2",
+  "python_version": "3.11.9"
+}

@@ -1,0 +1,29 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "TuneForge Protocol Event",
+  "type": "object",
+  "required": [
+    "timestamp",
+    "run_id",
+    "event_type",
+    "stage",
+    "status",
+    "message",
+    "git_sha"
+  ],
+  "properties": {
+    "timestamp": { "type": "string" },
+    "run_id": { "type": "string" },
+    "event_type": { "type": "string" },
+    "stage": { "type": "string" },
+    "status": { "type": "string" },
+    "message": { "type": "string" },
+    "git_sha": { "type": "string" },
+    "hardware_tier": { "type": "string" },
+    "public_status": { "type": "string" },
+    "metric_name": { "type": "string" },
+    "metric_value": { "type": "number" },
+    "artifact_path": { "type": "string" },
+    "error_id": { "type": "string" }
+  }
+}

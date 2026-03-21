@@ -1,0 +1,19 @@
+{
+  "public_status": "technical_preview",
+  "runs": [],
+  "tiers": {
+    "tier_a_rtx_3090_24gb": {
+      "label": "Verified on RTX 3090",
+      "notes": "Primary public reference tier for TuneForge v1.",
+      "required_successful_runs": 2,
+      "status": "unverified"
+    },
+    "tier_b_48gb_plus": {
+      "label": "Verified on 48 GB+",
+      "notes": "Secondary enterprise-grade validation tier for TuneForge v1.",
+      "required_successful_runs": 2,
+      "status": "unverified"
+    }
+  },
+  "version": 1
+}

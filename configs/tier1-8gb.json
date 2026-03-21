@@ -1,0 +1,21 @@
+{
+  "tier": "tier1-8gb",
+  "name": "tier1-8gb",
+  "min_vram_mb": 5500,
+  "max_vram_mb": 9000,
+  "dataset": "tinystories",
+  "num_shards": 4,
+  "max_seq_len": 256,
+  "vocab_size": 4096,
+  "eval_tokens": 524288,
+  "depth": 3,
+  "n_head": 4,
+  "n_kv_head": 4,
+  "n_embd": 384,
+  "device_batch_size": 16,
+  "total_batch_size": 16384,
+  "window_pattern": "L",
+  "disable_compile": true,
+  "learning_rate": 0.0005,
+  "description": "Entry tier for 6-8GB GPUs. Uses TinyStories dataset with small model for meaningful results in 5-minute experiments. LR tuned via 15 experiments on RTX 4070 Laptop (0.5x default = optimal)."
+}

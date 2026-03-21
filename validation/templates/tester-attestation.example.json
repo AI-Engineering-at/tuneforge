@@ -1,0 +1,10 @@
+{
+  "artifacts_complete": true,
+  "independent_environment": true,
+  "notes": "Full end-to-end private pilot run on a clean 3090 workstation.",
+  "result_status": "passed",
+  "submission_kind": "private_pilot",
+  "submitted_at": "2026-03-18T12:00:00Z",
+  "tester_id": "pilot-3090-a",
+  "tester_organization": "External Pilot"
+}

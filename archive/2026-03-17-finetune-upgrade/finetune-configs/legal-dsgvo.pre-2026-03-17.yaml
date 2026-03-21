@@ -1,0 +1,19 @@
+# Legal/DSGVO Fine-Tuning Config — German Legal Texts
+# Target: RTX 3090 (24GB) — QLoRA 4-bit
+# Data: Open Legal Data 251K + DSGVO + EU AI Act
+base_model: "LeoLM/leo-mistral-hessianai-7b"
+output_dir: "output/legal-dsgvo-7b"
+lora_r: 16
+lora_alpha: 32
+lora_dropout: 0.05
+target_modules: ["q_proj", "k_proj", "v_proj", "o_proj", "gate_proj", "up_proj", "down_proj"]
+bits: 4
+learning_rate: 2e-4
+max_steps: 3000
+per_device_train_batch_size: 4
+gradient_accumulation_steps: 4
+max_seq_length: 2048
+warmup_ratio: 0.03
+logging_steps: 10
+save_steps: 500
+eval_steps: 500

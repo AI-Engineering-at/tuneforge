@@ -1,0 +1,11 @@
+{
+  "event_time": "2026-03-19T09:15:00Z",
+  "event_source": "tuneforge",
+  "event_category": "validation",
+  "severity": "info",
+  "message": "Validation registry remained in technical preview.",
+  "run_id": "pilot-3090-a",
+  "git_sha": "abc1234",
+  "artifact_path": "validation/registry.json",
+  "hardware_tier": "tier_a_rtx_3090_24gb"
+}

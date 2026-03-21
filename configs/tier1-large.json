@@ -1,0 +1,20 @@
+{
+  "tier": "tier1-large",
+  "min_vram_mb": 5500,
+  "max_vram_mb": 9000,
+  "dataset": "tinystories",
+  "num_shards": 4,
+  "max_seq_len": 1024,
+  "vocab_size": 4096,
+  "eval_tokens": 524288,
+  "depth": 8,
+  "n_head": 8,
+  "n_kv_head": 4,
+  "n_embd": 768,
+  "device_batch_size": 4,
+  "total_batch_size": 16384,
+  "window_pattern": "L",
+  "disable_compile": true,
+  "learning_rate": 0.0005,
+  "description": "Large model for 8GB GPUs. Maximum architecture (depth 8, 768 dim) pushing VRAM limits. Benchmark config."
+}

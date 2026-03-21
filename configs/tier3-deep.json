@@ -1,0 +1,19 @@
+{
+  "tier": "tier3-deep",
+  "min_vram_mb": 15000,
+  "max_vram_mb": 99999,
+  "dataset": "tinystories",
+  "num_shards": 4,
+  "max_seq_len": 2048,
+  "vocab_size": 32768,
+  "eval_tokens": 20971520,
+  "depth": 12,
+  "n_head": 6,
+  "n_kv_head": 6,
+  "n_embd": 768,
+  "device_batch_size": 4,
+  "total_batch_size": 65536,
+  "window_pattern": "SSSL",
+  "learning_rate": 0.0006,
+  "description": "Deep variant — 12 layers instead of 8, smaller batch for VRAM"
+}

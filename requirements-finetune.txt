@@ -1,0 +1,15 @@
+# QLoRA Fine-Tuning Dependencies
+torch>=2.2.0
+transformers>=4.51.0
+peft>=0.10.0
+bitsandbytes>=0.43.0
+trl>=0.8.0
+datasets>=2.18.0
+accelerate>=0.28.0
+safetensors>=0.4.0
+unsloth>=2026.2.0
+sentencepiece
+protobuf
+huggingface-hub>=0.22.0
+wandb  # optional, for experiment tracking
+pyyaml

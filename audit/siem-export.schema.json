@@ -1,0 +1,25 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "TuneForge SIEM Export Event",
+  "type": "object",
+  "required": [
+    "event_time",
+    "event_source",
+    "event_category",
+    "severity",
+    "message",
+    "run_id",
+    "git_sha"
+  ],
+  "properties": {
+    "event_time": { "type": "string" },
+    "event_source": { "type": "string" },
+    "event_category": { "type": "string" },
+    "severity": { "type": "string" },
+    "message": { "type": "string" },
+    "run_id": { "type": "string" },
+    "git_sha": { "type": "string" },
+    "artifact_path": { "type": "string" },
+    "hardware_tier": { "type": "string" }
+  }
+}
