@@ -1,4 +1,8 @@
 <div align="center">
+  <img src="docs/images/hero-banner.png" alt="TuneForge — Fine-Tuning for Local LLMs" width="100%" />
+</div>
+
+<div align="center">
 
 # TuneForge
 
