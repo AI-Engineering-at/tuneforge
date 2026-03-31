@@ -103,3 +103,38 @@ def test_validate_release_artifacts_script(tmp_path):
     )
     assert result.returncode == 0, result.stdout + result.stderr
     assert (bundle_dir / "validation-result.json").exists()
+
+
+def test_write_protocol_event_script(tmp_path):
+    protocol_path = tmp_path / "results" / "protocol.jsonl"
+    script = ROOT / "scripts" / "write_protocol_event.py"
+    result = subprocess.run(
+        [
+            sys.executable,
+            str(script),
+            "--protocol-file",
+            str(protocol_path),
+            "--run-id",
+            "pilot-3090-a",
+            "--event-type",
+            "run.started",
+            "--stage",
+            "train",
+            "--status",
+            "started",
+            "--message",
+            "Fine-tune started.",
+            "--git-sha",
+            "abc1234",
+            "--hardware-tier",
+            "tier_a_rtx_3090_24gb",
+        ],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert result.returncode == 0, result.stdout + result.stderr
+    lines = protocol_path.read_text(encoding="utf-8").strip().splitlines()
+    payload = json.loads(lines[0])
+    assert payload["run_id"] == "pilot-3090-a"
+    assert payload["event_type"] == "run.started"

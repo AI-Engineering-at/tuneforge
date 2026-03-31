@@ -15,6 +15,7 @@ services:
       - ./finetune/configs:/app/finetune/configs
       - ./datasets/generated:/app/datasets/generated
       - ./output:/app/output
+      - ./results:/app/results
       - finetune-cache:/root/.cache/tuneforge
     deploy:
       resources:

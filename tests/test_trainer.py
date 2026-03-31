@@ -144,6 +144,7 @@ def test_training_summary_to_lines():
 def test_cli_main_smoke(monkeypatch, tmp_path, capsys):
     config_path = tmp_path / "config.yaml"
     config_path.write_text("dataset_path: 'datasets/generated/sps'\n")
+    summary_path = tmp_path / "summary.json"
 
     def fake_run_from_config(config_path, backend=None, dataset_path=None, do_eval=False):
         assert backend == "unsloth"
@@ -165,11 +166,13 @@ def test_cli_main_smoke(monkeypatch, tmp_path, capsys):
         "--backend", "unsloth",
         "--dataset", "tmp-dataset",
         "--eval",
+        "--summary-json", str(summary_path),
     ])
     captured = capsys.readouterr()
     assert rc == 0
     assert "primary_metric_name: eval_loss" in captured.out
     assert "primary_metric_value: 0.750000" in captured.out
+    assert summary_path.exists()
 
 
 def test_run_from_config_uses_trainer(monkeypatch, tmp_path):

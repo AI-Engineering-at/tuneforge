@@ -42,6 +42,17 @@ class TrainingSummary:
     training_seconds: float = 0.0
     total_seconds: float = 0.0
 
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "primary_metric_name": self.primary_metric_name,
+            "primary_metric_value": self.primary_metric_value,
+            "metric_goal": self.metric_goal,
+            "metrics": self.metrics,
+            "peak_vram_mb": self.peak_vram_mb,
+            "training_seconds": self.training_seconds,
+            "total_seconds": self.total_seconds,
+        }
+
     def to_lines(self) -> list[str]:
         lines = [
             f"primary_metric_name: {self.primary_metric_name}",
@@ -395,6 +406,10 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         default="INFO",
         choices=["DEBUG", "INFO", "WARNING", "ERROR"],
     )
+    parser.add_argument(
+        "--summary-json",
+        help="Optional path to write the structured training summary JSON",
+    )
     return parser.parse_args(argv)
 
 
@@ -442,6 +457,13 @@ def main(argv: list[str] | None = None) -> int:
         dataset_path=args.dataset,
         do_eval=args.eval,
     )
+    if args.summary_json:
+        summary_path = Path(args.summary_json)
+        summary_path.parent.mkdir(parents=True, exist_ok=True)
+        summary_path.write_text(
+            json.dumps(summary.to_dict(), indent=2, sort_keys=True),
+            encoding="utf-8",
+        )
     for line in summary.to_lines():
         print(line)
     return 0
