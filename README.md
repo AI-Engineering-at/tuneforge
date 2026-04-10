@@ -1,3 +1,12 @@
+<!--
+Title: TuneForge - Benchmark-first Fine-tuning Framework
+Version: 1.0.0
+Language: EN
+Audience: Users, Developers
+Last Sync: 2026-04-10
+Pair: README-DE.md
+-->
+
 <div align="center">
   <img src="docs/images/hero-banner.png" alt="TuneForge — Fine-Tuning for Local LLMs" width="100%" />
 </div>

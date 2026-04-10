@@ -4,7 +4,7 @@ Uses the multi-provider abstraction — works with Claude, OpenAI, Ollama, etc.
 
 Usage:
     from providers import create_provider
-    from datasets.synthetic_generator import SyntheticGenerator
+    from data_utils.synthetic_generator import SyntheticGenerator
 
     provider = create_provider("ollama", model="qwen2.5-coder:7b")
     gen = SyntheticGenerator(provider=provider)
@@ -15,7 +15,7 @@ import logging
 from dataclasses import dataclass, field
 from pathlib import Path
 
-from datasets.data_formats import AlpacaExample, to_alpaca_format
+from data_utils.data_formats import AlpacaExample, to_alpaca_format
 
 logger = logging.getLogger(__name__)
 

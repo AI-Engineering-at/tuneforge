@@ -1,0 +1,43 @@
+# Enterprise integration of TurboQuant into TuneForge
+# Run together with the main compose file:
+# docker-compose -f docker-compose.yml -f docker-compose.turboquant.yml up -d
+
+services:
+  turboquant:
+    build:
+      context: .
+      dockerfile: Dockerfile.turboquant
+    image: ai-engineerings-at/tuneforge-turboquant:latest
+    runtime: nvidia
+    environment:
+      - NVIDIA_VISIBLE_DEVICES=all
+      # We parse these inside an override shell loop or directly pass them if we use a runner script,
+      # but standard llama-server takes CLI args. We will use a command override.
+    volumes:
+      - turboquant-models:/models
+    ports:
+      - "8182:8182"
+    # Using turbo3 cache and 100K context by default
+    command: >
+      --model /models/${TURBOQUANT_MODEL_FILE:-mistralai_Mistral-Small-3.2-24B-Instruct-2506-Q4_K_M.gguf}
+      --cache-type-k turbo3
+      --cache-type-v turbo3
+      -c 100000
+      --host 0.0.0.0
+      --port 8182
+      -ngl 99
+    # Add a health check to ensure the model loaded successfully
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8182/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 120s # Give it time to allocate 100K context
+    networks:
+      default:
+        aliases:
+          - turboquant
+
+volumes:
+  turboquant-models:
+    name: turboquant-models

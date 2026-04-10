@@ -1,0 +1,49 @@
+# Tier A Validation Configuration
+# For RTX 3090 (24GB) hardware verification
+
+base_model: "Qwen/Qwen2.5-0.5B-Instruct"
+output_dir: "output/validation-run"
+backend: "peft_trl"
+
+dataset_path: "data_utils/dummy_test.jsonl"
+dataset_format: "alpaca"
+eval_split_ratio: 0.1
+
+primary_metric: "eval_loss"
+metric_goal: "minimize"
+
+lora_r: 16
+lora_alpha: 32
+lora_dropout: 0.05
+use_rslora: false
+target_modules:
+  - q_proj
+  - k_proj
+  - v_proj
+  - o_proj
+  - gate_proj
+  - up_proj
+  - down_proj
+
+bits: 4
+bnb_4bit_compute_dtype: "bfloat16"
+
+learning_rate: 2e-4
+num_train_epochs: 1
+max_steps: 10
+per_device_train_batch_size: 1
+gradient_accumulation_steps: 4
+max_seq_length: 512
+
+logging_steps: 1
+save_steps: 5
+eval_steps: 5
+
+seed: 42
+
+# Validation-specific metadata
+validation:
+  tier: "tier_a_rtx_3090_24gb"
+  purpose: "hardware_verification"
+  min_required_runs: 2
+  tolerance_percent: 2.0

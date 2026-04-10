@@ -2,11 +2,10 @@
 import json
 import os
 import sys
-import pytest
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
-from datasets.legal_data import LegalDataLoader, LegalDataConfig, main
+from data_utils.legal_data import LegalDataLoader, LegalDataConfig, main
 
 
 def test_legal_config_defaults():

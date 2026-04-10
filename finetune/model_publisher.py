@@ -410,7 +410,13 @@ class HFPublisher:
         ollama_model_name: str = "",
         system_prompt: str = "",
     ):
+        from finetune.zeroth_core import pre_publish_zeroth_check
         from huggingface_hub import HfApi
+
+        # --- Zeroth Seam: Prevent unauthorized publishing ---
+        from dataclasses import asdict
+        pre_publish_zeroth_check(asdict(card), asdict(manifest))
+        # ----------------------------------------------------
 
         write_release_bundle(
             adapter_path=adapter_path,

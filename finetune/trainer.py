@@ -21,7 +21,7 @@ from typing import Any
 
 import yaml
 
-from datasets.data_formats import (
+from data_utils.data_formats import (
     SUPPORTED_DATASET_FORMATS,
     normalize_records_to_text,
 )
@@ -309,8 +309,18 @@ class QLoRATrainer:
 
     def train(self, train_dataset, eval_dataset=None) -> tuple[Any, TrainingSummary]:
         """Run QLoRA training and emit a summary compatible with agent_loop."""
+        from finetune.zeroth_core import pre_train_zeroth_check
         import torch
-        from trl import SFTConfig, SFTTrainer
+        from trl import SFTConfig
+        from finetune.safe_trainer import SafeQLoRATrainer
+        from pathlib import Path
+
+        # --- Zeroth Seam: Prevent unauthorized fine-tuning ---
+        sample = [train_dataset[i] for i in range(min(5, len(train_dataset)))] if train_dataset else []
+        from dataclasses import asdict
+        job_id = f"train-{Path(self.config.output_dir).name}"
+        pre_train_zeroth_check(asdict(self.config), sample, job_id=job_id)
+        # -----------------------------------------------------
 
         total_t0 = time.time()
         if torch.cuda.is_available():
@@ -344,7 +354,24 @@ class QLoRATrainer:
         if eval_dataset is not None:
             trainer_kwargs["eval_dataset"] = eval_dataset
 
-        trainer = SFTTrainer(**trainer_kwargs)
+        safety_path = Path("datasets/zeroth_safety_golden.jsonl")
+        safety_dataset = None
+        if safety_path.exists():
+            from finetune.data_formats import apply_alpaca_format
+            s_records = load_jsonl_records(safety_path)
+            texts = [apply_alpaca_format(r) for r in s_records]
+            encoded = self.tokenizer(texts, padding="max_length", truncation=True, max_length=self.config.max_seq_length, return_tensors="pt")
+            
+            s_dataset_list = []
+            for i in range(len(texts)):
+                s_dataset_list.append({
+                    "input_ids": encoded["input_ids"][i],
+                    "attention_mask": encoded["attention_mask"][i],
+                    "labels": encoded["input_ids"][i].clone()
+                })
+            safety_dataset = s_dataset_list
+
+        trainer = SafeQLoRATrainer(**trainer_kwargs, safety_dataset=safety_dataset)
 
         train_t0 = time.time()
         train_result = trainer.train()

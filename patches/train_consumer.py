@@ -703,7 +703,7 @@ estimated_vram_mb = estimated_params * 2 / 1024 / 1024  # bf16 = 2 bytes
 estimated_training_vram_mb = estimated_vram_mb * 4
 if estimated_training_vram_mb > free_mem / 1024 / 1024:
     print(f"WARNING: Estimated training VRAM ({estimated_training_vram_mb:.0f}MB) may exceed free VRAM ({free_mem // 1024 // 1024}MB)")
-    print(f"  Consider reducing DEPTH, DEVICE_BATCH_SIZE, or MAX_SEQ_LEN")
+    print("  Consider reducing DEPTH, DEVICE_BATCH_SIZE, or MAX_SEQ_LEN")
 
 # --- Build model ---
 with torch.device("meta"):

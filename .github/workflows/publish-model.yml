@@ -1,0 +1,106 @@
+name: Publish Model
+
+on:
+  workflow_dispatch:
+    inputs:
+      model_path:
+        description: 'Path to model checkpoint (local path or HF repo)'
+        required: true
+        type: string
+      target_repo:
+        description: 'Target HuggingFace Hub repository'
+        required: true
+        type: string
+      model_card_template:
+        description: 'Model card template (optional)'
+        required: false
+        type: string
+        default: 'templates/model_card.md'
+      validation_report:
+        description: 'Path to validation report (optional)'
+        required: false
+        type: string
+      tags:
+        description: 'Tags (comma-separated)'
+        required: false
+        type: string
+        default: 'qlora,finetuned'
+
+env:
+  HF_TOKEN: ${{ secrets.HF_TOKEN }}
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      
+      - name: Install dependencies
+        run: |
+          pip install -e ".[dev]"
+          pip install huggingface-hub
+      
+      - name: Validate model
+        run: |
+          python scripts/validate_for_publish.py \
+            --model-path "${{ github.event.inputs.model_path }}" \
+            --template "${{ github.event.inputs.model_card_template }}"
+  
+  publish:
+    needs: validate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      
+      - name: Install dependencies
+        run: |
+          pip install -e ".[dev]"
+          pip install huggingface-hub
+      
+      - name: Publish to HuggingFace Hub
+        run: |
+          python scripts/publish_to_hub.py \
+            --model-path "${{ github.event.inputs.model_path }}" \
+            --target-repo "${{ github.event.inputs.target_repo }}" \
+            --template "${{ github.event.inputs.model_card_template }}" \
+            --tags "${{ github.event.inputs.tags }}" \
+            --validation-report "${{ github.event.inputs.validation_report }}"
+  
+  # Create Ollama Modelfile and test
+  ollama:
+    needs: publish
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      
+      - name: Install dependencies
+        run: |
+          pip install -e ".[dev]"
+      
+      - name: Generate Ollama Modelfile
+        run: |
+          python scripts/generate_modelfile.py \
+            --model-repo "${{ github.event.inputs.target_repo }}" \
+            --output modelfile
+      
+      - name: Upload Modelfile
+        uses: actions/upload-artifact@v4
+        with:
+          name: modelfile
+          path: Modelfile
+          retention-days: 30

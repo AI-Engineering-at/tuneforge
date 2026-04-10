@@ -1,0 +1,102 @@
+site_name: TuneForge Documentation
+site_description: Enterprise-grade fine-tuning framework for local LLMs
+site_author: AI Engineering
+site_url: https://tuneforge.ai-engineering.at
+
+copyright: Copyright &copy; 2026 AI Engineering
+
+repo_name: AI-Engineerings-at/tuneforge
+repo_url: https://github.com/AI-Engineerings-at/tuneforge
+eedit_uri: edit/main/docs/
+
+theme:
+  name: material
+  palette:
+    - scheme: default
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    - scheme: slate
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+  features:
+    - navigation.tabs
+    - navigation.sections
+    - navigation.expand
+    - navigation.top
+    - search.suggest
+    - search.highlight
+    - content.tabs.link
+    - content.code.annotation
+    - content.code.copy
+
+plugins:
+  - search
+  - mkdocstrings:
+      handlers:
+        python:
+          paths: ["."]
+          options:
+            docstring_style: google
+            show_source: true
+            show_root_heading: true
+            show_category_heading: true
+
+markdown_extensions:
+  - pymdownx.highlight:
+      anchor_linenums: true
+      line_spans: __span
+      pygments_lang_class: true
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+  - pymdownx.superfences
+  - pymdownx.mark
+  - pymdownx.magiclink
+  - pymdownx.tabbed:
+      alternate_style: true
+  - admonition
+  - pymdownx.details
+  - pymdownx.tasklist:
+      custom_checkbox: true
+  - toc:
+      permalink: true
+
+nav:
+  - Home: index.md
+  - Getting Started:
+    - Installation: setup/installation.md
+    - Quick Start: setup/quickstart.md
+    - Configuration: setup/configuration.md
+  - User Guide:
+    - Training Pipeline: guide/training.md
+    - Evaluation: guide/evaluation.md
+    - Model Publishing: guide/publishing.md
+    - Troubleshooting: guide/troubleshooting.md
+  - API Reference:
+    - Trainer: api/trainer.md
+    - Config: api/config.md
+    - Data Utils: api/data_utils.md
+    - Model Publisher: api/model_publisher.md
+    - Safety: api/safety.md
+  - Architecture:
+    - Overview: architecture/overview.md
+    - Decision Records: architecture/adr/
+  - Development:
+    - Contributing: development/contributing.md
+    - Testing: development/testing.md
+    - Security: development/security.md
+  - Compliance:
+    - EU AI Act: compliance/eu-ai-act.md
+    - Validation: compliance/validation.md
+
+extra:
+  version:
+    provider: mike
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/AI-Engineerings-at/tuneforge

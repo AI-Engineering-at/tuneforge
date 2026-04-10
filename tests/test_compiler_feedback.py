@@ -1,11 +1,10 @@
 """Tests for IEC 61131-3 Structured Text validator."""
 import os
 import sys
-import pytest
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
-from datasets.compiler_feedback import STValidator, ValidationResult
+from data_utils.compiler_feedback import STValidator, ValidationResult
 
 
 def test_basic_st_validation():

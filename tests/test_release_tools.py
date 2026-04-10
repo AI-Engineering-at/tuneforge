@@ -1,6 +1,5 @@
 """Tests for release validation and notebook content rendering tools."""
 import json
-import os
 import subprocess
 import sys
 from pathlib import Path

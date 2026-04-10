@@ -175,6 +175,24 @@ PROVIDER_REGISTRY = {
         "default_model": "qwen2.5-coder:7b",
         "needs_key": False,
     },
+    "turboquant": {
+        "class": OpenAICompatProvider,
+        "base_url": os.environ.get("TURBOQUANT_API_BASE", "http://localhost:8182/v1"),
+        "default_model": "local",
+        "needs_key": False,
+    },
+    "deepseek": {
+        "class": OpenAICompatProvider,
+        "base_url": "https://api.deepseek.com",
+        "default_model": "deepseek-chat",
+        "needs_key": True,
+    },
+    "groq": {
+        "class": OpenAICompatProvider,
+        "base_url": "https://api.groq.com/openai/v1",
+        "default_model": "llama-3.3-70b-versatile",
+        "needs_key": True,
+    }
 }
 
 
@@ -217,6 +235,9 @@ ENV_VAR_MAP = {
     "kimi": ["MOONSHOT_API_KEY"],
     "gemini": ["GEMINI_API_KEY", "GEMINI_API_KEY_2", "GEMINI_API_KEY_3"],
     "ollama": [],
+    "turboquant": [],
+    "deepseek": ["DEEPSEEK_API_KEY"],
+    "groq": ["GROQ_API_KEY"],
 }
 
 QUOTA_INDICATORS = [

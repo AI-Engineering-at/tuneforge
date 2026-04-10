@@ -1,15 +1,14 @@
 """Tests for synthetic data generator and data formats."""
 import os
 import sys
-import pytest
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
-from datasets.synthetic_generator import (
+from data_utils.synthetic_generator import (
     SyntheticGenerator, GenerationTask,
     SPS_CATEGORIES, COMPLEXITY_LEVELS,
 )
-from datasets.data_formats import (
+from data_utils.data_formats import (
     AlpacaExample, to_alpaca_format, to_sharegpt_format, alpaca_to_text,
     sharegpt_to_text, record_to_text, normalize_records_to_text,
 )

@@ -1,6 +1,5 @@
 """Patched overnight runner - applies runtime fixes before import."""
 import importlib
-import sys
 
 # Patch docker_runner before importing
 spec = importlib.util.spec_from_file_location("docker_runner", "docker_runner.py")

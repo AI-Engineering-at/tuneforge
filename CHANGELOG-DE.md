@@ -1,8 +1,13 @@
+<!--
+Title: Changelog
+Version: 1.0.0
+Language: DE
+Audience: Developers
+Last Sync: 2026-04-10
+Pair: CHANGELOG.md
+-->
+
 # TuneForge Changelog
-- Language: DE
-- Audience: Public
-- Last Sync: 2026-03-19
-- Pair: CHANGELOG.md
 
 ## 2026-03-19
 

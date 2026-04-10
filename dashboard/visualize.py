@@ -16,7 +16,6 @@ Usage:
 
 import argparse
 import csv
-import os
 import sys
 from pathlib import Path
 
@@ -222,7 +221,7 @@ def chart_keep_ratio(experiments: list[dict], chart_dir: Path) -> None:
         "discarded": COLORS["discarded"],
         "crashed/other": COLORS["crashed"],
     }
-    colors = [color_map.get(l, "#bdc3c7") for l in labels]
+    colors = [color_map.get(line, "#bdc3c7") for line in labels]
 
     wedges, texts, autotexts = ax.pie(
         sizes, labels=labels, colors=colors, autopct="%1.0f%%",
