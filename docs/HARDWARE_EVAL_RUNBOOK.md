@@ -3,65 +3,58 @@
 ## Status
 
 **Verbindung:** ✅ Ollama API erreichbar (http://10.40.10.90:11434)  
-**Modelle verfügbar:** qwen3.5:27b, gemma4:26b-a4b, mistral-small3.2:24b  
-**Geschwindigkeit:** ~10-15s pro Prompt (zu langsam für interaktive Ausführung)
+**Modelle verfügbar:** gemma4:26b-a4b-it-q4_K_M, qwen3.5:27b, mistral-small3.2:24b  
+**Geschwindigkeit:** ~10-15s pro Prompt (NORMAL für 26B Modell)  
+**Ziel-Modell:** `gemma4:26b-a4b-it-q4_K_M`
 
-## Empfohlene Vorgehensweise
+## Wichtig: Ausführung auf .90
 
-Da die API-Latenz ~10-15 Sekunden pro Prompt beträgt (100 Prompts = ~20-25 Minuten), 
-wird der Benchmark am besten im Hintergrund auf dem Zielserver ausgeführt.
+Da die API-Latenz ~10-15 Sekunden pro Prompt beträgt (105 Prompts = ~25-30 Minuten), muss der Benchmark **direkt auf dem Windows-Rechner 10.40.10.90** ausgeführt werden.
 
-### Option 1: Direkt auf .90 ausführen (Empfohlen)
+> ⚠️ **NICHT von einem Remote-Rechner ausführen!** Die Shell-Timeouts verhindern einen 25-Minuten-Benchmark.
 
-```bash
-# SSH auf .90
-ssh joe@10.40.10.90
+## Voraussetzungen auf .90
 
-# Repository klonen
-git clone https://github.com/ai-engineering-at/tuneforge.git
-cd tuneforge
+Stelle sicher, dass auf 10.40.10.90 installiert ist:
+- Python 3.10+ mit `requests`
+- Git
+- Ollama läuft auf localhost:11434
 
-# Python-Abhängigkeiten prüfen
-python3 --version  # Sollte 3.10+ sein
-pip3 install requests
-
-# Ollama prüfen
-curl http://localhost:11434/api/tags | jq
-
-# 1. Baseline Benchmark (10+10 prompts, ~5 Minuten)
-python3 eval/safety/quick_benchmark.py \
-    --model qwen3.5:27b \
-    --condition baseline \
-    --ollama-url http://localhost:11434 \
-    --output results/baseline.json
-
-# 2. Full Benchmark (50+50 prompts, ~20 Minuten)
-python3 eval/safety/benchmark.py \
-    --model qwen3.5:27b \
-    --condition baseline \
-    --ollama-url http://localhost:11434 \
-    --output results/baseline_full.json
-```
-
-### Option 2: Lokale Ausführung mit Remote-API
+## Ausführung auf .90 (PowerShell)
 
 ```powershell
-# PowerShell auf lokalem Rechner
-$env:OLLAMA_HOST = "http://10.40.10.90:11434"
+# 1. Auf 10.40.10.90 einloggen (lokal oder Remote Desktop)
+# 2. Repository klonen
+ git clone https://github.com/ai-engineering-at/tuneforge.git
+ cd tuneforge
 
-# Quick Benchmark (10+10)
-python eval/safety/quick_benchmark.py `
-    --model qwen3.5:27b `
-    --condition baseline `
-    --ollama-url http://10.40.10.90:11434 `
-    --output results/baseline.json
+# 3. Python-Abhängigkeiten installieren
+ pip install requests
 
-# Dies läuft ~20-25 Minuten!
+# 4. Ollama prüfen
+ curl http://localhost:11434/api/tags | ConvertFrom-Json
+
+# 5. Quick Benchmark (10+10 prompts, ~5 Minuten) - Zum Testen
+ python eval/safety/quick_benchmark.py `
+     --model gemma4:26b-a4b-it-q4_K_M `
+     --condition baseline `
+     --ollama-url http://localhost:11434 `
+     --output results/baseline_quick.json
+
+# 6. Full Benchmark (50+55 prompts, ~25-30 Minuten)
+ python eval/safety/benchmark.py `
+     --model gemma4:26b-a4b-it-q4_K_M `
+     --condition baseline `
+     --ollama-url http://localhost:11434 `
+     --output results/baseline_full.json
+
+# 7. Gradient Surgery Verification
+ python eval/gradient_surgery_verifier.py > results/surgery_verification.txt
 ```
 
 ## Erwartete Ergebnisse
 
-### Baseline (qwen3.5:27b ohne Fine-Tuning)
+### Baseline (gemma4:26b ohne Fine-Tuning)
 
 Erwartung basierend auf Modell-Spezifikation:
 - Harmful Refusal Rate: 70-90% (sollte ablehnen)
@@ -92,21 +85,21 @@ Fülle diese Tabelle mit echten Zahlen:
 ║                                ║ Refusal Rate  ║ Refusal Rate  ║ Score    ║
 ╠════════════════════════════════╬═══════════════╬═══════════════╬══════════╣
 ║ 1. Baseline (no tuning)        ║ __.__%        ║ __.__%        ║ __.__%   ║
-║    (50/50 prompts)             ║ (__/50)       ║ (__/50)       ║          ║
+║    (50/55 prompts)             ║ (__/50)       ║ (__/55)       ║          ║
 ╠════════════════════════════════╬═══════════════╬═══════════════╬══════════╣
 ║ 2. Fine-tuned NO SafeGrad      ║ __.__%        ║ __.__%        ║ __.__%   ║
-║    (50/50 prompts)             ║ (__/50)       ║ (__/50)       ║          ║
+║    (50/55 prompts)             ║ (__/50)       ║ (__/55)       ║          ║
 ╠════════════════════════════════╬═══════════════╬═══════════════╬══════════╣
 ║ 3. Fine-tuned WITH SafeGrad    ║ __.__%        ║ __.__%        ║ __.__%   ║
-║    (50/50 prompts)             ║ (__/50)       ║ (__/50)       ║          ║
+║    (50/55 prompts)             ║ (__/50)       ║ (__/55)       ║          ║
 ╚════════════════════════════════╩═══════════════╩═══════════════╩══════════╝
 ```
 
 ## Gradient Surgery Verification
 
-```bash
+```powershell
 # Auf .90 ausführen
-python3 eval/gradient_surgery_verifier.py > results/surgery_verification.txt
+python eval/gradient_surgery_verifier.py > results/surgery_verification.txt
 ```
 
 Erwartete Ausgabe:
@@ -121,23 +114,48 @@ Property Verification:
 
 Bereits durchgeführt: 7/7 Tests passing (lokal verifiziert)
 
-```bash
+```powershell
 # Auf .90 verifizieren
-python3 -m pytest tests/eval/test_contract3_integration.py -v
+python -m pytest tests/eval/test_contract3_integration.py -v
 ```
 
 ## Nächste Schritte
 
-1. [ ] SSH auf 10.40.10.90
+1. [ ] Auf 10.40.10.90 einloggen
 2. [ ] Repository klonen
-3. [ ] Quick Benchmark ausführen (10+10)
+3. [ ] Quick Benchmark ausführen (10+10) zum Testen
 4. [ ] Ergebnisse in docs/EVAL-RESULTS.md eintragen
-5. [ ] Full Benchmark ausführen (50+50) - optional
+5. [ ] Full Benchmark ausführen (50+55) - ~25 Minuten
 6. [ ] Gradient Surgery Verification ausführen
 7. [ ] Commit mit echten Zahlen
 
 ## Known Issues
 
 - API-Latenz: ~10-15s pro Prompt (kein Bug, nur langsam)
-- Gesamtlaufzeit Full Benchmark: ~20-25 Minuten
-- Empfehlung: Im Screen/Tmux-Session ausführen
+- Gesamtlaufzeit Full Benchmark: ~25-30 Minuten
+- Empfehlung: In PowerShell-Hintergrund ausführen
+
+## Troubleshooting
+
+### Ollama nicht erreichbar
+```powershell
+# Prüfen ob Ollama läuft
+Get-Process ollama
+
+# Ollama starten (falls nötig)
+ollama serve
+```
+
+### Model nicht gefunden
+```powershell
+# Modell pullen
+ollama pull gemma4:26b-a4b-it-q4_K_M
+
+# Verfügbare Modelle anzeigen
+ollama list
+```
+
+### Timeout bei Benchmark
+Der Benchmark hat einen Timeout von 120s pro Request (für 26B Modell nötig). Falls trotzdem Timeouts auftreten:
+- Prüfe GPU-Auslastung: `nvidia-smi`
+- Reduziere auf quick_benchmark.py (10+10 prompts)

@@ -17,7 +17,7 @@ from typing import Any
 import requests
 
 import sys
-from pathlib import Path
+
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
 from eval.safety.prompts_harmful import HARMFUL_PROMPTS
@@ -67,7 +67,7 @@ class SafetyBenchmark:
     Benchmark safety of models via Ollama API.
 
     Usage:
-        benchmark = SafetyBenchmark(model_name="qwen3.5:4b")
+        benchmark = SafetyBenchmark(model_name="gemma4:26b-a4b-it-q4_K_M")
         results = benchmark.evaluate()
     """
 
@@ -90,7 +90,7 @@ class SafetyBenchmark:
                 "prompt": prompt,
                 "stream": False,
             },
-            timeout=60,
+            timeout=120,  # 26B models need more time
         )
         response.raise_for_status()
         return response.json()["response"]
