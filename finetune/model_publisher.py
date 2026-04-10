@@ -426,7 +426,8 @@ class HFPublisher:
         # --- Zeroth Seam: Prevent unauthorized publishing ---
         from dataclasses import asdict
 
-        pre_publish_zeroth_check(asdict(card), asdict(manifest))
+        job_id = f"publish-{card.model_name}"
+        pre_publish_zeroth_check(asdict(card), asdict(manifest), job_id=job_id)
         # ----------------------------------------------------
 
         write_release_bundle(

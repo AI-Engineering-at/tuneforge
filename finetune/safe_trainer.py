@@ -11,6 +11,8 @@ try:
 except ImportError:
     amp = None
 
+from finetune.zeroth_client import ZerothRejectError
+
 logger = logging.getLogger(__name__)
 
 
@@ -51,12 +53,13 @@ class SafeQLoRATrainer(SFTTrainer):
     - Extensive JSONL telemetry reporting.
     """
 
-    def __init__(self, *args, safety_dataset=None, **kwargs):
+    def __init__(self, *args, safety_dataset=None, zeroth_client=None, **kwargs):
         super().__init__(*args, **kwargs)
         self.safety_dataset = safety_dataset
         self.safety_dataloader = None
         self.safety_iterator = None
         self.zeroth_auditor = ZerothAuditLogger(self.args.output_dir)
+        self.zeroth_client = zeroth_client  # Optional: only evaluate if client provided
 
         if self.safety_dataset is not None:
             logger.info("Initializing Enterprise Zeroth-Law Gradient Surgery constraints.")
@@ -227,6 +230,41 @@ class SafeQLoRATrainer(SFTTrainer):
             for i, param in enumerate(model.parameters()):
                 if param.requires_grad and task_grads[i] is not None:
                     param.grad = task_grads[i]
+
+        # --- Contract 3: Zeroth Weight Update Evaluation ---
+        # Evaluate weight update with Zeroth before optimizer step (every step)
+        if hasattr(self, "zeroth_client") and self.zeroth_client:
+            try:
+                # Collect gradients as delta weights representation
+                delta_weights = {}
+                for name, param in model.named_parameters():
+                    if param.grad is not None:
+                        delta_weights[name] = param.grad.detach().cpu().numpy().tolist()
+
+                training_config = {
+                    "model_name": getattr(self.args, "model_name", "unknown"),
+                    "learning_rate": getattr(self.args, "learning_rate", 0.0),
+                    "max_steps": getattr(self.args, "max_steps", 0),
+                    "global_step": self.state.global_step,
+                }
+
+                model_id = getattr(self.args, "output_dir", "unknown")
+                self.zeroth_client.evaluate_or_raise(
+                    model_id=model_id,
+                    delta_weights=delta_weights,
+                    training_config=training_config,
+                )
+                audit_metrics["zeroth_contract3"] = "ALLOW"
+            except ZerothRejectError as e:
+                audit_metrics["zeroth_contract3"] = "REJECT"
+                logger.error(f"Contract 3 REJECT: {e.reason} (risk: {e.risk_score:.2f})")
+                raise RuntimeError(f"Training halted by Zeroth Contract 3: {e.reason}") from e
+            except Exception as e:
+                # Fail-closed: any error (including timeout) results in REJECT
+                audit_metrics["zeroth_contract3"] = "REJECT"
+                logger.error(f"Contract 3 evaluation failed (fail-closed): {e}")
+                raise RuntimeError(f"Training halted by Zeroth Contract 3 failure: {e}") from e
+        # ----------------------------------------------------
 
         # Finalize Audit
         self.zeroth_auditor.log(audit_metrics)

@@ -17,10 +17,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
-- Integration test suite (52 tests)
-- Validation run automation scripts
-- Security whitepaper documentation
-- Architecture Decision Records (ADRs)
+- Contract 3: Zeroth Weight Update Evaluation integration
+- JWT authentication for Zeroth client
+- Production safety: ZEROTH_MOCK_MODE exits in production
+- trust_remote_code config option (default False)
+
+### Fixed
+- model_publisher.py: Added missing job_id argument
+- safe_trainer.py: Contract 3 evaluation on every training step
+- zeroth_client.py: Added JWT auth header support
+- All ruff formatting issues resolved
+- 232 tests passing (100% success rate)
+
+### Security
+- Mock mode artifacts marked as UNVERIFIED
+- trust_remote_code default changed to False
+- Production environment blocks mock mode
+
+### Documentation
+- Session learnings documented
+- Architecture documentation updated
+- API reference created
+- Security documentation updated
 
 ## [1.0.0] - 2026-04-10
 

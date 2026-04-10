@@ -202,6 +202,21 @@ class AegisClient:
         self._mock_mode = os.environ.get("ZEROTH_MOCK_MODE", "0") == "1"
         self._log = StructuredLogger("tuneforge.aegis_client")
         self._timeout_sec = int(os.environ.get("AEGIS_TIMEOUT_SEC", "5"))
+        
+        # MOCK_MODE safety checks
+        if self._mock_mode:
+            self._log.warn(
+                "ZEROTH_MOCK_MODE_ENABLED",
+                message="WARNING: ZEROTH_MOCK_MODE=1 - Safety checks bypassed. Artifacts will be marked as UNVERIFIED.",
+            )
+            # In production, mock mode is fatal
+            if os.environ.get("TUNEFORGE_ENV", "development").lower() == "production":
+                self._log.error(
+                    "ZEROTH_MOCK_MODE_PRODUCTION",
+                    message="FATAL: ZEROTH_MOCK_MODE=1 in production environment. Exiting.",
+                )
+                import sys
+                sys.exit(1)
 
     def _headers(self) -> Dict[str, str]:
         return {
@@ -233,7 +248,12 @@ class AegisClient:
             self._log.warn(
                 "aegis_mock_mode", job_id=job_id, phase=phase, message="ZEROTH_MOCK_MODE=1: Bypassing real Aegis check."
             )
-            return {"verdict": "ALLOW", "reason": "mock_mode", "clearance_token": "mock"}
+            return {
+                "verdict": "ALLOW",
+                "reason": "mock_mode",
+                "clearance_token": "mock",
+                "verification_status": "UNVERIFIED",
+            }
 
         payload = {
             "node_id": node_id or os.environ.get("TUNEFORGE_NODE_ID", "unknown"),

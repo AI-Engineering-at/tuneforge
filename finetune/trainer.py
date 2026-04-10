@@ -78,6 +78,7 @@ class QLoRAConfig:
     base_model: str = "Qwen/Qwen2.5-Coder-7B-Instruct"
     output_dir: str = "output"
     backend: str = "peft_trl"
+    trust_remote_code: bool = False  # Opt-in for custom model architectures
 
     # Dataset
     dataset_path: str = ""
@@ -253,7 +254,7 @@ class QLoRATrainer:
             self.config.base_model,
             quantization_config=bnb_config,
             device_map="auto",
-            trust_remote_code=True,
+            trust_remote_code=self.config.trust_remote_code,
         )
         self.model = prepare_model_for_kbit_training(self.model)
 
