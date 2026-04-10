@@ -1,4 +1,5 @@
 """Additional tests to achieve 100% coverage for data_formats.py."""
+
 import pytest
 from data_utils.data_formats import (
     record_to_text,

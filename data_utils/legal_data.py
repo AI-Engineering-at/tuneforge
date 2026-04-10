@@ -1,4 +1,5 @@
 """Legal text dataset loader for DSGVO/EU AI Act fine-tuning."""
+
 from __future__ import annotations
 
 import argparse
@@ -14,11 +15,13 @@ logger = logging.getLogger(__name__)
 
 @dataclass
 class LegalDataConfig:
-    sources: list[str] = field(default_factory=lambda: [
-        "openlegaldata",
-        "eurlex_dsgvo",
-        "eurlex_aiact",
-    ])
+    sources: list[str] = field(
+        default_factory=lambda: [
+            "openlegaldata",
+            "eurlex_dsgvo",
+            "eurlex_aiact",
+        ]
+    )
     language: str = "de"
     output_dir: Path = field(default_factory=lambda: Path("datasets/generated/legal"))
     max_examples: int = 10000
@@ -63,16 +66,12 @@ class LegalDataLoader:
 
     def _format_case(self, case: dict) -> dict:
         return {
-            "instruction": (
-                "Analysiere folgendes Gerichtsurteil und "
-                "fasse die Kernaussage zusammen."
-            ),
+            "instruction": ("Analysiere folgendes Gerichtsurteil und fasse die Kernaussage zusammen."),
             "input": case.get("content", "")[:4000],
             "output": case.get("abstract", case.get("content", "")[:500]),
         }
 
-    def _format_qa_pair(self, context: str, question: str,
-                        answer: str) -> dict:
+    def _format_qa_pair(self, context: str, question: str, answer: str) -> dict:
         return {
             "instruction": question,
             "input": context,
@@ -85,20 +84,23 @@ class LegalDataLoader:
         for art in range(1, 100):
             try:
                 response = provider.chat(
-                    messages=[{
-                        "role": "user",
-                        "content": (
-                            f"Generate 5 German Q&A training pairs about "
-                            f"DSGVO Article {art}. Each pair: a practical "
-                            f"question a company might ask, and a detailed "
-                            f"answer citing the article. Return JSON array "
-                            f'with "instruction", "input" (article text), '
-                            f'"output" (answer) fields.'
-                        ),
-                    }],
+                    messages=[
+                        {
+                            "role": "user",
+                            "content": (
+                                f"Generate 5 German Q&A training pairs about "
+                                f"DSGVO Article {art}. Each pair: a practical "
+                                f"question a company might ask, and a detailed "
+                                f"answer citing the article. Return JSON array "
+                                f'with "instruction", "input" (article text), '
+                                f'"output" (answer) fields.'
+                            ),
+                        }
+                    ],
                     max_tokens=4096,
                 )
                 import re
+
                 json_match = re.search(r"\[.*\]", response, re.DOTALL)
                 if json_match:
                     examples.extend(json.loads(json_match.group()))

@@ -93,13 +93,10 @@ def validate_registry(payload: dict[str, Any]) -> list[str]:
 
     if payload["public_status"] != "technical_preview":
         not_verified = [
-            tier_name for tier_name in REQUIRED_TIERS
-            if tiers.get(tier_name, {}).get("status") != "verified"
+            tier_name for tier_name in REQUIRED_TIERS if tiers.get(tier_name, {}).get("status") != "verified"
         ]
         if not_verified:
-            errors.append(
-                "registry public_status may only leave technical_preview after both tiers are verified"
-            )
+            errors.append("registry public_status may only leave technical_preview after both tiers are verified")
 
     return errors
 

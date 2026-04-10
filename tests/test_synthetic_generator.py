@@ -1,20 +1,29 @@
 """Tests for synthetic data generator and data formats."""
+
 import os
 import sys
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 from data_utils.synthetic_generator import (
-    SyntheticGenerator, GenerationTask,
-    SPS_CATEGORIES, COMPLEXITY_LEVELS,
+    SyntheticGenerator,
+    GenerationTask,
+    SPS_CATEGORIES,
+    COMPLEXITY_LEVELS,
 )
 from data_utils.data_formats import (
-    AlpacaExample, to_alpaca_format, to_sharegpt_format, alpaca_to_text,
-    sharegpt_to_text, record_to_text, normalize_records_to_text,
+    AlpacaExample,
+    to_alpaca_format,
+    to_sharegpt_format,
+    alpaca_to_text,
+    sharegpt_to_text,
+    record_to_text,
+    normalize_records_to_text,
 )
 
 
 # --- Data Formats ---
+
 
 def test_alpaca_format():
     example = AlpacaExample(
@@ -54,9 +63,7 @@ def test_alpaca_to_text_no_input():
 
 
 def test_sharegpt_to_text():
-    text = sharegpt_to_text(
-        to_sharegpt_format("Write PID", "Here is the code")
-    )
+    text = sharegpt_to_text(to_sharegpt_format("Write PID", "Here is the code"))
     assert "### User:" in text
     assert "### Assistant:" in text
 
@@ -68,15 +75,18 @@ def test_record_to_text_auto_prompt_completion():
 
 
 def test_normalize_records_to_text():
-    rows = normalize_records_to_text([
-        {"instruction": "Write code", "input": "", "output": "done"},
-        {"text": "already normalized"},
-    ])
+    rows = normalize_records_to_text(
+        [
+            {"instruction": "Write code", "input": "", "output": "done"},
+            {"text": "already normalized"},
+        ]
+    )
     assert rows[0]["text"].startswith("### Instruction:")
     assert rows[1]["text"] == "already normalized"
 
 
 # --- Generation Tasks ---
+
 
 def test_generation_task():
     task = GenerationTask(
@@ -102,19 +112,21 @@ def test_complexity_levels():
 
 # --- SyntheticGenerator ---
 
+
 def test_synthetic_generator_init(tmp_path):
     from unittest.mock import MagicMock
+
     mock_provider = MagicMock()
-    gen = SyntheticGenerator(provider=mock_provider, output_dir=tmp_path / "out")
+    _gen = SyntheticGenerator(provider=mock_provider, output_dir=tmp_path / "out")
     assert (tmp_path / "out").exists()
 
 
 def test_synthetic_generator_batch(tmp_path):
     from unittest.mock import MagicMock
+
     mock_provider = MagicMock()
     mock_provider.chat.return_value = (
-        "FUNCTION_BLOCK FB_PID\nVAR_INPUT\n  rSetpoint: REAL;\n"
-        "END_VAR\nEND_FUNCTION_BLOCK"
+        "FUNCTION_BLOCK FB_PID\nVAR_INPUT\n  rSetpoint: REAL;\nEND_VAR\nEND_FUNCTION_BLOCK"
     )
     gen = SyntheticGenerator(provider=mock_provider, output_dir=tmp_path / "out")
     examples = gen.generate_batch("pid_controller", "basic", count=2)

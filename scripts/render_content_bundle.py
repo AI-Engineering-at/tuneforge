@@ -18,23 +18,33 @@ def render_bundle(entry: dict, output_dir: Path):
 
     wiki = f"# {title}\n\n{summary}\n\n## Benchmark\n\n{benchmark}\n\n## Decision\n\n{decision}\n"
     blog = f"# {title}\n\n{summary}\n\n## Why it matters\n\n{entry.get('why_it_matters', benchmark)}\n"
-    social = "\n".join([
-        title,
-        summary,
-        f"Audience: {audience}",
-        f"Decision: {decision}",
-    ]) + "\n"
-    release_notes = "\n".join([
-        f"# Release Notes - {title}",
-        "",
-        summary,
-        "",
-        "## Benchmark",
-        benchmark,
-        "",
-        "## Release Decision",
-        decision,
-    ]) + "\n"
+    social = (
+        "\n".join(
+            [
+                title,
+                summary,
+                f"Audience: {audience}",
+                f"Decision: {decision}",
+            ]
+        )
+        + "\n"
+    )
+    release_notes = (
+        "\n".join(
+            [
+                f"# Release Notes - {title}",
+                "",
+                summary,
+                "",
+                "## Benchmark",
+                benchmark,
+                "",
+                "## Release Decision",
+                decision,
+            ]
+        )
+        + "\n"
+    )
 
     (output_dir / "wiki.md").write_text(wiki, encoding="utf-8")
     (output_dir / "blog.md").write_text(blog, encoding="utf-8")

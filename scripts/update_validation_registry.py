@@ -10,6 +10,7 @@ Usage:
 
 This script updates validation/registry.json with the new validation run.
 """
+
 from __future__ import annotations
 
 import argparse
@@ -56,16 +57,13 @@ def update_tier_status(registry: dict, tier: str) -> None:
     if tier not in registry["tiers"]:
         print(f"Warning: Tier {tier} not found in registry tiers", file=sys.stderr)
         return
-    
+
     tier_info = registry["tiers"][tier]
     required_runs = tier_info.get("required_successful_runs", 2)
-    
+
     # Count successful runs for this tier
-    successful_runs = sum(
-        1 for run in registry["runs"]
-        if run.get("tier") == tier and run.get("result") == "success"
-    )
-    
+    successful_runs = sum(1 for run in registry["runs"] if run.get("tier") == tier and run.get("result") == "success")
+
     if successful_runs >= required_runs:
         tier_info["status"] = "verified"
         print(f"\n✅ Tier '{tier}' status updated to 'verified' ({successful_runs} runs)")
@@ -75,9 +73,7 @@ def update_tier_status(registry: dict, tier: str) -> None:
 
 def main() -> int:
     """Main entry point."""
-    parser = argparse.ArgumentParser(
-        description="Update validation registry after successful validation"
-    )
+    parser = argparse.ArgumentParser(description="Update validation registry after successful validation")
     parser.add_argument(
         "--tier",
         required=True,
@@ -112,23 +108,23 @@ def main() -> int:
         action="store_true",
         help="Force update even if comparison.json shows failure",
     )
-    
+
     args = parser.parse_args()
-    
+
     # Validate evidence directory
     if not args.evidence_dir.exists():
         print(f"Error: Evidence directory not found: {args.evidence_dir}", file=sys.stderr)
         return 1
-    
+
     # Check comparison.json
     comparison_path = args.evidence_dir / "comparison.json"
     if not comparison_path.exists():
         print(f"Error: comparison.json not found in {args.evidence_dir}", file=sys.stderr)
         print("Run collect_validation_evidence.py first", file=sys.stderr)
         return 1
-    
+
     comparison = json.loads(comparison_path.read_text())
-    
+
     if not comparison.get("within_tolerance", False):
         if not args.force:
             print("Error: Validation comparison shows failure", file=sys.stderr)
@@ -136,10 +132,10 @@ def main() -> int:
             return 1
         else:
             print("⚠️  Warning: Forcing registry update despite validation failure")
-    
+
     # Load registry
     registry = load_registry(args.registry)
-    
+
     # Create run entry
     run_entry = {
         "tier": args.tier,
@@ -155,16 +151,16 @@ def main() -> int:
             "peak_vram_mb": comparison.get("run1", {}).get("peak_vram_mb"),
         },
     }
-    
+
     # Add to registry
     registry["runs"].append(run_entry)
-    
+
     # Update tier status
     update_tier_status(registry, args.tier)
-    
+
     # Save registry
     save_registry(registry, args.registry)
-    
+
     print(f"\n✅ Registry updated: {args.registry}")
     print("\nRun entry added:")
     print(f"  Tier: {args.tier}")
@@ -172,18 +168,18 @@ def main() -> int:
     print(f"  Tester: {args.tester}")
     print(f"  Git SHA: {run_entry['git_sha']}")
     print(f"  Result: {run_entry['result']}")
-    
+
     # Print current status
     print("\nCurrent Registry Status:")
     for tier_id, tier_info in registry["tiers"].items():
         status_icon = "✅" if tier_info.get("status") == "verified" else "⏳"
         print(f"  {status_icon} {tier_id}: {tier_info.get('status', 'unknown')}")
-    
+
     # Check if we can update public status
     if registry["tiers"].get("tier_a_rtx_3090_24gb", {}).get("status") == "verified":
         print("\n🎉 Tier A is now verified!")
         print("Consider updating README.md to reflect verified status")
-    
+
     return 0
 
 

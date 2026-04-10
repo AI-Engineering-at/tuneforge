@@ -14,6 +14,7 @@ Usage:
     # Cloud (OpenRouter — any model):
     OPENROUTER_API_KEY=sk-... python agent_loop.py --provider openrouter --model anthropic/claude-sonnet-4-20250514
 """
+
 import json
 import logging
 import re
@@ -33,17 +34,20 @@ logger = logging.getLogger(__name__)
 # --- Graceful Shutdown ---
 _shutdown_requested = False
 
+
 def _signal_handler(signum, frame):
     global _shutdown_requested
     sig_name = signal.Signals(signum).name
     logger.warning(f"Received {sig_name} — finishing current experiment then stopping...")
     _shutdown_requested = True
 
+
 signal.signal(signal.SIGINT, _signal_handler)
 signal.signal(signal.SIGTERM, _signal_handler)
 
 
 # --- Data Types ---
+
 
 @dataclass
 class ExperimentResult:
@@ -75,6 +79,7 @@ class CodeChange:
 
 
 # --- Results Parser ---
+
 
 class ResultsParser:
     METRIC_PATTERN = re.compile(r"^(\w+):\s+(.+)$", re.MULTILINE)
@@ -133,10 +138,7 @@ class ResultsParser:
             elif key == "depth":
                 result.depth = int(parsed)
 
-        result.metrics = {
-            key: value for key, value in numeric_metrics.items()
-            if key not in {"primary_metric_value"}
-        }
+        result.metrics = {key: value for key, value in numeric_metrics.items() if key not in {"primary_metric_value"}}
         result.primary_metric_name = metadata.get("primary_metric_name", "val_bpb")
         result.metric_goal = metadata.get("metric_goal", "minimize")
 
@@ -185,18 +187,20 @@ class ResultsParser:
                 results.append(result)
             elif len(parts) >= 5:
                 metric_value = float(parts[1])
-                results.append(ExperimentResult(
-                    commit_hash=parts[0],
-                    val_bpb=metric_value,
-                    primary_metric_name="val_bpb",
-                    primary_metric_value=metric_value,
-                    metric_goal="minimize",
-                    metrics={"val_bpb": metric_value},
-                    peak_vram_mb=float(parts[2]) * 1024 if float(parts[2]) < 100 else float(parts[2]),
-                    status=parts[3],
-                    description=parts[4],
-                    success=parts[3] != "crash",
-                ))
+                results.append(
+                    ExperimentResult(
+                        commit_hash=parts[0],
+                        val_bpb=metric_value,
+                        primary_metric_name="val_bpb",
+                        primary_metric_value=metric_value,
+                        metric_goal="minimize",
+                        metrics={"val_bpb": metric_value},
+                        peak_vram_mb=float(parts[2]) * 1024 if float(parts[2]) < 100 else float(parts[2]),
+                        status=parts[3],
+                        description=parts[4],
+                        success=parts[3] != "crash",
+                    )
+                )
         return results
 
     @staticmethod
@@ -205,10 +209,7 @@ class ResultsParser:
         metric_name: str = "val_bpb",
         metric_goal: str = "minimize",
     ) -> ExperimentResult:
-        kept = [
-            r for r in results
-            if r.status == "keep" and r.success and r.primary_metric_name == metric_name
-        ]
+        kept = [r for r in results if r.status == "keep" and r.success and r.primary_metric_name == metric_name]
         if not kept:
             return ExperimentResult()
         if metric_goal == "maximize":
@@ -217,6 +218,7 @@ class ResultsParser:
 
 
 # --- Research Agent (provider-agnostic) ---
+
 
 class ResearchAgent:
     """Provider-agnostic research agent. Works with ANY LLM provider."""
@@ -286,13 +288,13 @@ After the code, add a line: DESCRIPTION: <one-line description of what you chang
         desc_match = re.search(r"DESCRIPTION:\s*(.+)", text)
         description = desc_match.group(1).strip() if desc_match else "No description"
 
-        reasoning = text[:text.find("```python")] if "```python" in text else ""
+        reasoning = text[: text.find("```python")] if "```python" in text else ""
 
-        return CodeChange(code_diff=code_diff, description=description,
-                          reasoning=reasoning)
+        return CodeChange(code_diff=code_diff, description=description, reasoning=reasoning)
 
 
 # --- Experiment Runner ---
+
 
 class ExperimentRunner:
     def __init__(self, work_dir: Path = Path("."), train_script: str = "train.py"):
@@ -321,30 +323,31 @@ class ExperimentRunner:
             logger.info("Restored train.py from backup")
 
     def git_commit(self, message: str) -> str:
-        subprocess.run(["git", "add", self.train_script],
-                        cwd=self.work_dir, capture_output=True)
-        result = subprocess.run(["git", "commit", "-m", message],
-                        cwd=self.work_dir, capture_output=True, text=True)
+        subprocess.run(["git", "add", self.train_script], cwd=self.work_dir, capture_output=True)
+        result = subprocess.run(["git", "commit", "-m", message], cwd=self.work_dir, capture_output=True, text=True)
         if result.returncode != 0:
             logger.warning(f"Git commit failed: {result.stderr.strip()}")
             return "no-commit"
         result = subprocess.run(
-            ["git", "rev-parse", "--short", "HEAD"],
-            cwd=self.work_dir, capture_output=True, text=True
+            ["git", "rev-parse", "--short", "HEAD"], cwd=self.work_dir, capture_output=True, text=True
         )
         return result.stdout.strip()
 
     def git_revert(self):
-        subprocess.run(["git", "reset", "--hard", "HEAD~1"],
-                        cwd=self.work_dir, capture_output=True)
+        subprocess.run(["git", "reset", "--hard", "HEAD~1"], cwd=self.work_dir, capture_output=True)
 
     def check_gpu(self) -> dict:
         """Pre-flight VRAM check. Returns GPU info or raises if no GPU."""
         try:
             result = subprocess.run(
-                ["nvidia-smi", "--query-gpu=name,memory.total,memory.free,temperature.gpu",
-                 "--format=csv,noheader,nounits"],
-                capture_output=True, text=True, timeout=10,
+                [
+                    "nvidia-smi",
+                    "--query-gpu=name,memory.total,memory.free,temperature.gpu",
+                    "--format=csv,noheader,nounits",
+                ],
+                capture_output=True,
+                text=True,
+                timeout=10,
             )
             if result.returncode != 0:
                 return {"error": "nvidia-smi failed", "available": False}
@@ -369,7 +372,8 @@ class ExperimentRunner:
             result = subprocess.run(
                 ["python3", self.train_script],
                 cwd=self.work_dir,
-                capture_output=True, text=True,
+                capture_output=True,
+                text=True,
                 timeout=timeout,
             )
             return result.stdout + result.stderr, result.returncode
@@ -382,9 +386,7 @@ class ExperimentRunner:
         tsv_path = self.work_dir / "results" / "results.tsv"
         tsv_path.parent.mkdir(parents=True, exist_ok=True)
         if not tsv_path.exists():
-            tsv_path.write_text(
-                "commit\tmetric_name\tmetric_value\tmemory_gb\tstatus\tdescription\n"
-            )
+            tsv_path.write_text("commit\tmetric_name\tmetric_value\tmemory_gb\tstatus\tdescription\n")
         memory_gb = result.peak_vram_mb / 1024
         with open(tsv_path, "a") as f:
             f.write(
@@ -427,6 +429,7 @@ class ExperimentRunner:
 
 # --- Main Loop ---
 
+
 class AutoResearchLoop:
     def __init__(self, config: AgentConfig, agent: ResearchAgent = None):
         self.config = config
@@ -439,8 +442,7 @@ class AutoResearchLoop:
                 model=config.model,
                 base_url=config.base_url,
             )
-            self.agent = ResearchAgent(provider=provider,
-                                       max_tokens=config.max_tokens)
+            self.agent = ResearchAgent(provider=provider, max_tokens=config.max_tokens)
         self.runner = ExperimentRunner(
             work_dir=config.work_dir,
             train_script=str(config.train_script),
@@ -467,9 +469,11 @@ class AutoResearchLoop:
         # Pre-flight GPU check
         gpu_info = self.runner.check_gpu()
         if gpu_info.get("available"):
-            logger.info(f"GPU: {gpu_info['name']} | "
-                        f"VRAM: {gpu_info['vram_free_mb']}MB free / {gpu_info['vram_total_mb']}MB | "
-                        f"Temp: {gpu_info['temp_c']}°C")
+            logger.info(
+                f"GPU: {gpu_info['name']} | "
+                f"VRAM: {gpu_info['vram_free_mb']}MB free / {gpu_info['vram_total_mb']}MB | "
+                f"Temp: {gpu_info['temp_c']}°C"
+            )
         else:
             logger.warning(f"GPU check failed: {gpu_info.get('error', 'unknown')} — training may fail")
 
@@ -481,10 +485,12 @@ class AutoResearchLoop:
 
         while not self._should_stop():
             self.experiments_run += 1
-            logger.info(f"\n{'='*60}\n"
-                        f"Experiment {self.experiments_run} | "
-                        f"Elapsed: {(time.time() - self.start_time)/60:.1f}min | "
-                        f"Failures: {self.consecutive_failures}\n{'='*60}")
+            logger.info(
+                f"\n{'=' * 60}\n"
+                f"Experiment {self.experiments_run} | "
+                f"Elapsed: {(time.time() - self.start_time) / 60:.1f}min | "
+                f"Failures: {self.consecutive_failures}\n{'=' * 60}"
+            )
 
             try:
                 self._run_one_experiment(program)
@@ -517,16 +523,16 @@ class AutoResearchLoop:
         crashed = [r for r in history if r.status == "crash"]
 
         summary = (
-            f"\n{'='*60}\n"
+            f"\n{'=' * 60}\n"
             f"LOOP COMPLETE\n"
-            f"{'='*60}\n"
+            f"{'=' * 60}\n"
             f"  Experiments:  {self.experiments_run}\n"
             f"  Duration:     {elapsed:.1f}h\n"
             f"  Kept:         {len(kept)}\n"
             f"  Discarded:    {len(discarded)}\n"
             f"  Crashed:      {len(crashed)}\n"
             f"  Best {self.config.primary_metric}: {best.primary_metric_value:.6f} ({best.description})\n"
-            f"{'='*60}"
+            f"{'=' * 60}"
         )
         logger.info(summary)
 
@@ -537,9 +543,7 @@ class AutoResearchLoop:
         if _shutdown_requested:
             return True
         elapsed_hours = (time.time() - self.start_time) / 3600
-        return self.config.budget.is_exhausted(
-            self.experiments_run, elapsed_hours
-        )
+        return self.config.budget.is_exhausted(self.experiments_run, elapsed_hours)
 
     def _run_one_experiment(self, program: str):
         current_code = self.runner.read_code()
@@ -577,7 +581,8 @@ class AutoResearchLoop:
             logger.warning(f"Syntax error in proposed code: {e} — reverting")
             self.runner.restore_backup()
             result = ExperimentResult(
-                success=False, status="crash",
+                success=False,
+                status="crash",
                 error_message=f"SyntaxError: {e}",
                 description=change.description,
             )
@@ -585,9 +590,7 @@ class AutoResearchLoop:
             self.runner.write_experiment_json(self.experiments_run, result)
             return
 
-        commit_hash = self.runner.git_commit(
-            f"experiment: {change.description}"
-        )
+        commit_hash = self.runner.git_commit(f"experiment: {change.description}")
 
         # 3. Run training
         timeout = self.config.time_budget_seconds + 120
@@ -609,15 +612,9 @@ class AutoResearchLoop:
         result.metric_goal = self.config.metric_goal
         if result.primary_metric_name == "val_bpb":
             result.val_bpb = result.primary_metric_value
-        if (
-            result.success
-            and result.primary_metric_name != self.config.primary_metric
-        ):
+        if result.success and result.primary_metric_name != self.config.primary_metric:
             result.success = False
-            result.error_message = (
-                f"Expected metric `{self.config.primary_metric}`, "
-                f"got `{result.primary_metric_name}`"
-            )
+            result.error_message = f"Expected metric `{self.config.primary_metric}`, got `{result.primary_metric_name}`"
 
         # 5. Keep or discard
         if not result.success:
@@ -630,21 +627,16 @@ class AutoResearchLoop:
             if best.primary_metric_value > 0:
                 if self.config.metric_goal == "maximize":
                     improved = (
-                        result.primary_metric_value >
-                        best.primary_metric_value + self.config.improvement_threshold
+                        result.primary_metric_value > best.primary_metric_value + self.config.improvement_threshold
                     )
                 else:
                     improved = (
-                        result.primary_metric_value <
-                        best.primary_metric_value - self.config.improvement_threshold
+                        result.primary_metric_value < best.primary_metric_value - self.config.improvement_threshold
                     )
 
             if best.primary_metric_value == 0:
                 result.status = "keep"
-                logger.info(
-                    f"KEEP (baseline): {result.primary_metric_name}="
-                    f"{result.primary_metric_value:.6f}"
-                )
+                logger.info(f"KEEP (baseline): {result.primary_metric_name}={result.primary_metric_value:.6f}")
             elif improved:
                 result.status = "keep"
                 if self.config.metric_goal == "maximize":
@@ -671,30 +663,23 @@ class AutoResearchLoop:
 
 def main():
     import argparse
-    parser = argparse.ArgumentParser(
-        description="AutoResearch Loop — Multi-Provider Autonomous Research"
-    )
+
+    parser = argparse.ArgumentParser(description="AutoResearch Loop — Multi-Provider Autonomous Research")
     parser.add_argument(
-        "--provider", default="ollama",
+        "--provider",
+        default="ollama",
         choices=["claude", "openai", "openrouter", "kimi", "ollama"],
-        help="LLM provider (default: ollama = free/local)"
+        help="LLM provider (default: ollama = free/local)",
     )
+    parser.add_argument("--model", default="", help="Model name (empty=provider default)")
     parser.add_argument(
-        "--model", default="",
-        help="Model name (empty=provider default)"
+        "--base-url", default="", help="Custom API base URL (e.g. http://localhost:11434/v1 for remote Ollama)"
     )
-    parser.add_argument(
-        "--base-url", default="",
-        help="Custom API base URL (e.g. http://localhost:11434/v1 for remote Ollama)"
-    )
-    parser.add_argument(
-        "--program", default="programs/program-conservative.md"
-    )
+    parser.add_argument("--program", default="programs/program-conservative.md")
     parser.add_argument("--work-dir", default=".", help="Working directory")
     parser.add_argument("--max-experiments", type=int, default=200)
     parser.add_argument("--max-hours", type=float, default=12.0)
-    parser.add_argument("--time-budget", type=int, default=300,
-                        help="Seconds per experiment (default: 300)")
+    parser.add_argument("--time-budget", type=int, default=300, help="Seconds per experiment (default: 300)")
     parser.add_argument("--threshold", type=float, default=0.001)
     parser.add_argument("--primary-metric", default="val_bpb")
     parser.add_argument(

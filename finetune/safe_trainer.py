@@ -6,10 +6,17 @@ import torch
 from torch.utils.data import DataLoader, RandomSampler
 from trl import SFTTrainer
 
+try:
+    from apex import amp
+except ImportError:
+    amp = None
+
 logger = logging.getLogger(__name__)
+
 
 class ZerothAuditLogger:
     """Enterprise Audit Logger for continuous monitoring of safety interventions."""
+
     def __init__(self, output_dir: str):
         self.output_dir = output_dir
         if self.output_dir:
@@ -28,13 +35,14 @@ class ZerothAuditLogger:
         except Exception as e:
             logger.error(f"Failed to write to Zeroth Audit log: {e}")
 
+
 class SafeQLoRATrainer(SFTTrainer):
     """
     SFTTrainer with Enterprise Zeroth-Law-Core Hardening (Gradient Surgery).
-    
+
     This overrides the default `training_step` to implement Orthogonal Gradient Projection.
     It guarantees that primary task gradients never conflict with the safety subspace.
-    
+
     Enterprise features included:
     - Micro-batching for safety evaluations to prevent catastrophic VRAM scaling.
     - Zero-Fault exception handling (Cuda Out-Of-Memory graceful fallback).
@@ -53,7 +61,7 @@ class SafeQLoRATrainer(SFTTrainer):
         if self.safety_dataset is not None:
             logger.info("Initializing Enterprise Zeroth-Law Gradient Surgery constraints.")
             sampler = RandomSampler(self.safety_dataset)
-            
+
             # Anti-OOM: Force batch_size=1 and drop remainder batches
             self.safety_dataloader = DataLoader(
                 self.safety_dataset,
@@ -90,7 +98,7 @@ class SafeQLoRATrainer(SFTTrainer):
             "nan_faults": 0,
             "surgeries_performed": 0,
             "shield_active": False,
-            "safety_loss": 0.0
+            "safety_loss": 0.0,
         }
 
         model.train()
@@ -105,7 +113,7 @@ class SafeQLoRATrainer(SFTTrainer):
 
         if self.args.n_gpu > 1:
             loss = loss.mean()
-            
+
         if self.do_grad_scaling:
             self.scaler.scale(loss).backward()
         elif self.use_apex:
@@ -120,7 +128,7 @@ class SafeQLoRATrainer(SFTTrainer):
 
         # --- ZEROTH ENTERPRISE SHIELD ---
         safety_inputs = self._prepare_inputs(safety_inputs)
-        
+
         # Snapshot Phase: Deep-clone current utility gradients
         task_grads = []
         for param in model.parameters():
@@ -128,7 +136,7 @@ class SafeQLoRATrainer(SFTTrainer):
                 task_grads.append(param.grad.clone())
             else:
                 task_grads.append(None)
-                
+
         model.zero_grad()
 
         # OOM-Protected Safety Pass
@@ -136,15 +144,17 @@ class SafeQLoRATrainer(SFTTrainer):
         try:
             with self.compute_loss_context_manager():
                 if getattr(self, "_compute_loss_with_num_items", False) and num_items_in_batch is not None:
-                     safety_loss = self.compute_loss(model, safety_inputs, return_outputs=False, num_items_in_batch=num_items_in_batch)
+                    safety_loss = self.compute_loss(
+                        model, safety_inputs, return_outputs=False, num_items_in_batch=num_items_in_batch
+                    )
                 else:
-                     safety_loss = self.compute_loss(model, safety_inputs, return_outputs=False)
+                    safety_loss = self.compute_loss(model, safety_inputs, return_outputs=False)
 
             if self.args.n_gpu > 1:
                 safety_loss = safety_loss.mean()
-            
+
             audit_metrics["safety_loss"] = safety_loss.item()
-            
+
             # Dynamic Shielding Evaluation
             safe_threshold = 0.5
             if safety_loss.item() > safe_threshold:
@@ -160,7 +170,9 @@ class SafeQLoRATrainer(SFTTrainer):
         except RuntimeError as e:
             if "out of memory" in str(e).lower():
                 torch.cuda.empty_cache()
-                logger.warning(f"[Zeroth-Shield] CUDA OOM during safety pass at step {self.state.global_step}. Yielding.")
+                logger.warning(
+                    f"[Zeroth-Shield] CUDA OOM during safety pass at step {self.state.global_step}. Yielding."
+                )
                 audit_metrics["oom_faults"] += 1
             else:
                 raise e
@@ -178,17 +190,17 @@ class SafeQLoRATrainer(SFTTrainer):
                     if param.requires_grad and param.grad is not None and task_grads[i] is not None:
                         s_grad = param.grad
                         t_grad = task_grads[i]
-                        
+
                         # Validate Math integrity before surgery
                         if not torch.isfinite(s_grad).all() or not torch.isfinite(t_grad).all():
                             nan_guards_triggered += 1
-                            param.grad = t_grad # Restore original and skip surgery for this tensor
+                            param.grad = t_grad  # Restore original and skip surgery for this tensor
                             continue
-                        
+
                         dot_product = (t_grad * s_grad).sum()
                         if dot_product < 0:
                             s_norm_sq = (s_grad * s_grad).sum()
-                            
+
                             if s_norm_sq > 1e-8 and torch.isfinite(s_norm_sq):
                                 projection = (dot_product / s_norm_sq) * s_grad
                                 if torch.isfinite(projection).all():
@@ -198,7 +210,7 @@ class SafeQLoRATrainer(SFTTrainer):
                                     nan_guards_triggered += 1
                             else:
                                 nan_guards_triggered += 1
-                                
+
                         param.grad = t_grad
                     elif param.requires_grad and task_grads[i] is not None:
                         param.grad = task_grads[i]
@@ -219,10 +231,12 @@ class SafeQLoRATrainer(SFTTrainer):
         # Finalize Audit
         self.zeroth_auditor.log(audit_metrics)
         if self.state.global_step % self.args.logging_steps == 0:
-            self.log({
-                "zeroth_loss": audit_metrics["safety_loss"], 
-                "zeroth_surgeries": audit_metrics["surgeries_performed"],
-                "zeroth_shield_active": 1 if audit_metrics["shield_active"] else 0
-            })
+            self.log(
+                {
+                    "zeroth_loss": audit_metrics["safety_loss"],
+                    "zeroth_surgeries": audit_metrics["surgeries_performed"],
+                    "zeroth_shield_active": 1 if audit_metrics["shield_active"] else 0,
+                }
+            )
 
         return loss.detach() / self.args.gradient_accumulation_steps

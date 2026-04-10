@@ -8,6 +8,7 @@ Usage:
         --target-repo org/model-name \
         --template templates/model_card.md
 """
+
 from __future__ import annotations
 
 import argparse
@@ -18,6 +19,7 @@ from pathlib import Path
 
 try:
     from huggingface_hub import HfApi, create_repo, upload_folder
+
     HAS_HF = True
 except ImportError:
     HAS_HF = False
@@ -69,7 +71,7 @@ If you use this model, please cite:
 }
 ```
 """
-    
+
     return Path(template_path).read_text()
 
 
@@ -84,18 +86,18 @@ def render_model_card(
     # Parse validation report
     validation_info = "Validation report not provided."
     status = "🔧 Technical Preview (Unverified)"
-    
+
     if validation_report_path and Path(validation_report_path).exists():
         try:
             report = json.loads(Path(validation_report_path).read_text())
             tier = report.get("tier", "unknown")
             run_count = len(report.get("verification_runs", []))
-            
+
             if tier == "A" and run_count >= 2:
                 status = "✅ Tier A Verified"
                 validation_info = f"""
 - **Tier:** A (Consumer/Pro Hardware)
-- **Hardware:** {report.get('hardware_requirements', {}).get('min_gpu', 'N/A')}
+- **Hardware:** {report.get("hardware_requirements", {}).get("min_gpu", "N/A")}
 - **Runs:** {run_count} independent successful runs
 - **Report:** See validation report in repository
 """
@@ -104,10 +106,10 @@ def render_model_card(
                 validation_info = f"Runs completed: {run_count}"
         except Exception as e:
             validation_info = f"Could not parse validation report: {e}"
-    
+
     # Build tags YAML
     tags_yaml = "\n".join(f"- {tag}" for tag in tags)
-    
+
     # Render template
     card = template.replace("{{model_name}}", repo_id.split("/")[-1])
     card = card.replace("{{repo_id}}", repo_id)
@@ -116,7 +118,7 @@ def render_model_card(
     card = card.replace("{{status}}", status)
     card = card.replace("{{validation_info}}", validation_info)
     card = card.replace("{{date}}", datetime.now().strftime("%Y-%m-%d"))
-    
+
     return card
 
 
@@ -129,20 +131,20 @@ def main() -> int:
     parser.add_argument("--validation-report", help="Path to validation report")
     parser.add_argument("--private", action="store_true", help="Create private repository")
     parser.add_argument("--base-model", default="unknown", help="Base model name")
-    
+
     args = parser.parse_args()
-    
+
     if not HAS_HF:
         print("❌ huggingface-hub not installed. Run: pip install huggingface-hub")
         return 1
-    
+
     print(f"Publishing to: {args.target_repo}")
     print("=" * 60)
-    
+
     # Load template and render model card
     template = load_template(args.template)
     tags = [t.strip() for t in args.tags.split(",") if t.strip()]
-    
+
     model_card = render_model_card(
         template=template,
         repo_id=args.target_repo,
@@ -150,23 +152,24 @@ def main() -> int:
         tags=tags,
         validation_report_path=args.validation_report,
     )
-    
+
     # Write model card to model directory
     model_path = Path(args.model_path)
     readme_path = model_path / "README.md"
     readme_path.write_text(model_card)
     print(f"✅ Generated model card: {readme_path}")
-    
+
     # Copy validation report if provided
     if args.validation_report and Path(args.validation_report).exists():
         report_dest = model_path / "validation_report.json"
         import shutil
+
         shutil.copy(args.validation_report, report_dest)
         print(f"✅ Copied validation report: {report_dest}")
-    
+
     # Create/upload to HF Hub
-    api = HfApi()
-    
+    _api = HfApi()
+
     try:
         create_repo(
             repo_id=args.target_repo,
@@ -177,7 +180,7 @@ def main() -> int:
     except Exception as e:
         print(f"❌ Failed to create repository: {e}")
         return 1
-    
+
     try:
         upload_folder(
             repo_id=args.target_repo,
@@ -188,10 +191,10 @@ def main() -> int:
     except Exception as e:
         print(f"❌ Failed to upload model: {e}")
         return 1
-    
+
     print("=" * 60)
     print("✅ Publishing complete!")
-    
+
     return 0
 
 

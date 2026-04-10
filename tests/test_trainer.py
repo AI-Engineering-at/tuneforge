@@ -1,4 +1,5 @@
 """Tests for the hybrid QLoRA trainer and CLI."""
+
 import os
 import sys
 from pathlib import Path
@@ -115,11 +116,15 @@ def test_build_text_datasets_split():
         "import_hf_datasets_module",
         return_value=FakeDatasetsModule(),
     ):
-        train_dataset, eval_dataset = build_text_datasets([
-            {"instruction": "Q1", "input": "", "output": "A1"},
-            {"instruction": "Q2", "input": "", "output": "A2"},
-            {"instruction": "Q3", "input": "", "output": "A3"},
-        ], dataset_format="alpaca", eval_split_ratio=0.34)
+        train_dataset, eval_dataset = build_text_datasets(
+            [
+                {"instruction": "Q1", "input": "", "output": "A1"},
+                {"instruction": "Q2", "input": "", "output": "A2"},
+                {"instruction": "Q3", "input": "", "output": "A3"},
+            ],
+            dataset_format="alpaca",
+            eval_split_ratio=0.34,
+        )
     assert train_dataset is not None
     assert eval_dataset is not None
     assert "text" in train_dataset.column_names
@@ -160,13 +165,19 @@ def test_cli_main_smoke(monkeypatch, tmp_path, capsys):
         )
 
     monkeypatch.setattr("finetune.trainer.run_from_config", fake_run_from_config)
-    rc = main([
-        "--config", str(config_path),
-        "--backend", "unsloth",
-        "--dataset", "tmp-dataset",
-        "--eval",
-        "--summary-json", str(summary_path),
-    ])
+    rc = main(
+        [
+            "--config",
+            str(config_path),
+            "--backend",
+            "unsloth",
+            "--dataset",
+            "tmp-dataset",
+            "--eval",
+            "--summary-json",
+            str(summary_path),
+        ]
+    )
     captured = capsys.readouterr()
     assert rc == 0
     assert "primary_metric_name: eval_loss" in captured.out

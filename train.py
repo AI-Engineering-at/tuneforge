@@ -12,7 +12,7 @@ BATCH_SIZE = 32
 LEARNING_RATE = 0.000375  # Further reduced learning rate by 0.75x of the current best
 WEIGHT_DECAY = 0.2
 EPOCHS = 5
-DEVICE = 'cuda' if torch.cuda.is_available() else 'cpu'
+DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 
 # Prepare data
 train_loader, val_loader = prepare_data(BATCH_SIZE)
@@ -43,18 +43,20 @@ for epoch in range(EPOCHS):
     with torch.no_grad():
         val_loss = evaluate_model(model, val_loader, DEVICE)
 
-    print(f"Epoch {epoch+1}/{EPOCHS}, Val Loss: {val_loss}")
+    print(f"Epoch {epoch + 1}/{EPOCHS}, Val Loss: {val_loss}")
 
 total_time = time.time() - start_time
 print(f"Training completed in {total_time:.2f} seconds")
 
 # Save results
 val_bpb = val_loss
-peak_vram_mb = torch.cuda.max_memory_allocated() / (1024 * 1024) if DEVICE == 'cuda' else 0
+peak_vram_mb = torch.cuda.max_memory_allocated() / (1024 * 1024) if DEVICE == "cuda" else 0
 print(f"val_bpb: {val_bpb:.6f}")
 print(f"peak_vram_mb: {peak_vram_mb:.2f}")
 
 # Log results
 with open("results.tsv", "a") as f:
-    commit_hash = os.popen('git rev-parse --short HEAD').read().strip()
-    f.write(f"{commit_hash}\t{val_bpb:.6f}\t{peak_vram_mb/1024:.1f}\tkeep\tDESCRIPTION: Further reduced learning rate by 0.75x of the current best\n")
+    commit_hash = os.popen("git rev-parse --short HEAD").read().strip()
+    f.write(
+        f"{commit_hash}\t{val_bpb:.6f}\t{peak_vram_mb / 1024:.1f}\tkeep\tDESCRIPTION: Further reduced learning rate by 0.75x of the current best\n"
+    )

@@ -1,4 +1,5 @@
 """Tests for TuneForge release bundle publishing helpers."""
+
 import os
 import sys
 
@@ -52,9 +53,7 @@ def test_model_card_yaml_frontmatter():
 
 
 def test_repo_and_ollama_name_builders():
-    assert build_hf_repo_id("local", "Legal/DSGVO", "Qwen/Qwen3-8B") == (
-        "local/tuneforge-legal-dsgvo-qwen3-8b-adapter"
-    )
+    assert build_hf_repo_id("local", "Legal/DSGVO", "Qwen/Qwen3-8B") == ("local/tuneforge-legal-dsgvo-qwen3-8b-adapter")
     assert build_ollama_model_name("Legal/DSGVO", "Qwen/Qwen3-8B", "q4_k_m") == (
         "tuneforge:legal-dsgvo-qwen3-8b-q4-k-m"
     )
@@ -146,27 +145,47 @@ def test_write_release_bundle(tmp_path):
 
 
 def test_bundle_cli_smoke(tmp_path):
-    rc = main([
-        "bundle",
-        "--adapter-path", str(tmp_path),
-        "--model-name", "local/tuneforge-sps-plc-qwen3-8b-adapter",
-        "--base-model", "Qwen/Qwen3-8B",
-        "--language", "de",
-        "--domain", "Industrial Automation / IEC 61131-3",
-        "--training-data", "Synthetic IEC data",
-        "--dataset", "Synthetic IEC data",
-        "--primary-metric", "eval_loss",
-        "--metric-goal", "minimize",
-        "--primary-value", "0.5",
-        "--hardware", "RTX 3090",
-        "--hardware-tier", "tier_a_rtx_3090_24gb",
-        "--gpu-model", "RTX 3090",
-        "--gpu-vram-gb", "24",
-        "--tester-id", "ci-smoke",
-        "--base-model-license", "Apache-2.0",
-        "--gguf-filename", "model.gguf",
-        "--limitation", "Human review required.",
-    ])
+    rc = main(
+        [
+            "bundle",
+            "--adapter-path",
+            str(tmp_path),
+            "--model-name",
+            "local/tuneforge-sps-plc-qwen3-8b-adapter",
+            "--base-model",
+            "Qwen/Qwen3-8B",
+            "--language",
+            "de",
+            "--domain",
+            "Industrial Automation / IEC 61131-3",
+            "--training-data",
+            "Synthetic IEC data",
+            "--dataset",
+            "Synthetic IEC data",
+            "--primary-metric",
+            "eval_loss",
+            "--metric-goal",
+            "minimize",
+            "--primary-value",
+            "0.5",
+            "--hardware",
+            "RTX 3090",
+            "--hardware-tier",
+            "tier_a_rtx_3090_24gb",
+            "--gpu-model",
+            "RTX 3090",
+            "--gpu-vram-gb",
+            "24",
+            "--tester-id",
+            "ci-smoke",
+            "--base-model-license",
+            "Apache-2.0",
+            "--gguf-filename",
+            "model.gguf",
+            "--limitation",
+            "Human review required.",
+        ]
+    )
     assert rc == 0
     assert (tmp_path / "training-manifest.json").exists()
     assert (tmp_path / "benchmark-summary.json").exists()

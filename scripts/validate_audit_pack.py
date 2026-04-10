@@ -46,7 +46,9 @@ def validate_audit_pack() -> list[str]:
         if line.strip()
     ]
     for index, payload in enumerate(protocol_lines, start=1):
-        _validate_required_keys(payload, protocol_schema.get("required", []), f"protocol.sample.jsonl line {index}", errors)
+        _validate_required_keys(
+            payload, protocol_schema.get("required", []), f"protocol.sample.jsonl line {index}", errors
+        )
 
     for rel_name, required in {
         "error-registry.sample.json": ["error_id", "severity", "summary", "mitigation", "last_reviewed"],

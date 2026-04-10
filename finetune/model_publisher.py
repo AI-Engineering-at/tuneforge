@@ -3,6 +3,7 @@
 This module generates a governed publication bundle for Hugging Face, GitHub
 Releases, and Ollama-compatible distribution.
 """
+
 from __future__ import annotations
 
 import argparse
@@ -142,11 +143,13 @@ class BenchmarkSummary:
         if self.notes:
             lines.extend(["", self.notes])
         if self.metrics:
-            lines.extend([
-                "",
-                "| Metric | Value |",
-                "|--------|-------|",
-            ])
+            lines.extend(
+                [
+                    "",
+                    "| Metric | Value |",
+                    "|--------|-------|",
+                ]
+            )
             for key, value in sorted(self.metrics.items()):
                 lines.append(f"| {key} | {_render_metric(value)} |")
         return "\n".join(lines) + "\n"
@@ -208,32 +211,37 @@ class ModelCard:
     backend: str = "transformers + peft + trl"
     intended_use: str = "Domain-specific local inference and benchmarked adaptation."
     out_of_scope_use: str = "High-risk or legally sensitive automation without human review."
-    limitations: list[str] = field(default_factory=lambda: [
-        "Benchmark claims are valid only for the documented hardware budget.",
-        "This release does not constitute legal advice or compliance certification.",
-    ])
-    safety_notes: list[str] = field(default_factory=lambda: [
-        "Review outputs before production use.",
-    ])
-    privacy_notes: list[str] = field(default_factory=lambda: [
-        "Do not assume the base model is safe for personal data without a separate review.",
-    ])
+    limitations: list[str] = field(
+        default_factory=lambda: [
+            "Benchmark claims are valid only for the documented hardware budget.",
+            "This release does not constitute legal advice or compliance certification.",
+        ]
+    )
+    safety_notes: list[str] = field(
+        default_factory=lambda: [
+            "Review outputs before production use.",
+        ]
+    )
+    privacy_notes: list[str] = field(
+        default_factory=lambda: [
+            "Do not assume the base model is safe for personal data without a separate review.",
+        ]
+    )
     public_status: str = PUBLIC_STATUS_TECHNICAL_PREVIEW
     hardware_tier: str = HARDWARE_TIER_UNASSIGNED
 
     def to_markdown(self) -> str:
-        metrics_table = "\n".join(
-            f"| {k} | {_render_metric(float(v))} |"
-            for k, v in sorted(self.metrics.items())
-        ) or "| n/a | n/a |"
+        metrics_table = (
+            "\n".join(f"| {k} | {_render_metric(float(v))} |" for k, v in sorted(self.metrics.items()))
+            or "| n/a | n/a |"
+        )
         limitations = "\n".join(f"- {item}" for item in self.limitations)
         safety_notes = "\n".join(f"- {item}" for item in self.safety_notes)
         privacy_notes = "\n".join(f"- {item}" for item in self.privacy_notes)
         status_note = (
-            "This release is a Technical Preview until TuneForge completes the public hardware "
-            "validation matrix."
-            if self.public_status == PUBLIC_STATUS_TECHNICAL_PREVIEW else
-            "This release is allowed to carry a verified hardware label only when the validation "
+            "This release is a Technical Preview until TuneForge completes the public hardware validation matrix."
+            if self.public_status == PUBLIC_STATUS_TECHNICAL_PREVIEW
+            else "This release is allowed to carry a verified hardware label only when the validation "
             "registry records enough independent successful runs for the same tier."
         )
         return f"""---
@@ -329,11 +337,13 @@ def write_modelfile(
     if system_prompt:
         escaped = system_prompt.replace('"', '\\"')
         lines.append(f'PARAMETER system "{escaped}"')
-    lines.extend([
-        f"# Suggested Ollama model name: {ollama_model_name}",
-        "# Generate with: ollama create <name> -f Modelfile",
-        "",
-    ])
+    lines.extend(
+        [
+            f"# Suggested Ollama model name: {ollama_model_name}",
+            "# Generate with: ollama create <name> -f Modelfile",
+            "",
+        ]
+    )
     output_path.write_text("\n".join(lines), encoding="utf-8")
     return output_path
 
@@ -415,6 +425,7 @@ class HFPublisher:
 
         # --- Zeroth Seam: Prevent unauthorized publishing ---
         from dataclasses import asdict
+
         pre_publish_zeroth_check(asdict(card), asdict(manifest))
         # ----------------------------------------------------
 
@@ -454,19 +465,28 @@ class GGUFConverter:
         command = converter_command or os.environ.get("GGUF_CONVERTER", "")
         if command:
             cmd = command.split() + [
-                "--outtype", quantization,
-                "--outfile", output_path,
+                "--outtype",
+                quantization,
+                "--outfile",
+                output_path,
                 adapter_path,
             ]
         else:
             cmd = [
-                "python3", "-m", "llama_cpp.convert",
-                "--outtype", quantization,
-                "--outfile", output_path,
+                "python3",
+                "-m",
+                "llama_cpp.convert",
+                "--outtype",
+                quantization,
+                "--outfile",
+                output_path,
                 adapter_path,
             ]
         result = subprocess.run(
-            cmd, capture_output=True, text=True, timeout=600,
+            cmd,
+            capture_output=True,
+            text=True,
+            timeout=600,
         )
         if result.returncode != 0:
             raise RuntimeError(f"GGUF conversion failed: {result.stderr}")
@@ -557,7 +577,8 @@ def build_release_objects(
         license=args.license,
         hardware=args.hardware,
         backend=args.backend,
-        limitations=args.limitation or [
+        limitations=args.limitation
+        or [
             "Benchmark claims apply only to the documented hardware budget.",
         ],
         public_status=args.public_status,
@@ -670,8 +691,7 @@ def main(argv: list[str] | None = None) -> int:
 
     card, manifest, benchmark, license_manifest, environment_manifest, tester_attestation = build_release_objects(args)
     ollama_model_name = args.ollama_model_name or (
-        build_ollama_model_name(args.domain, args.base_model, "q4_k_m")
-        if args.gguf_filename else ""
+        build_ollama_model_name(args.domain, args.base_model, "q4_k_m") if args.gguf_filename else ""
     )
 
     if args.command == "bundle":

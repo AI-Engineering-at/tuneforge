@@ -5,6 +5,7 @@ Generate Ollama Modelfile for a fine-tuned model.
 Usage:
     python scripts/generate_modelfile.py --model-repo org/model-name --output modelfile
 """
+
 from __future__ import annotations
 
 import argparse
@@ -28,7 +29,7 @@ def generate_modelfile(
     }
     if parameters:
         params.update(parameters)
-    
+
     # Default chat template
     chat_template = """{{- if .System }}
 <|im_start|>system
@@ -40,7 +41,7 @@ def generate_modelfile(
 """
     if template:
         chat_template = template
-    
+
     # Build Modelfile
     lines = [
         "# TuneForge generated Modelfile",
@@ -62,11 +63,11 @@ def generate_modelfile(
         '"""',
         "",
     ]
-    
+
     # Add parameters
     for key, value in params.items():
         lines.append(f"PARAMETER {key} {value}")
-    
+
     return "\n".join(lines)
 
 
@@ -76,33 +77,33 @@ def main() -> int:
     parser.add_argument("--base-model", help="Base model tag (e.g., llama3:8b)")
     parser.add_argument("--output", default="modelfile", help="Output file name")
     parser.add_argument("--template-file", help="Path to custom chat template file")
-    
+
     args = parser.parse_args()
-    
+
     # Load custom template if provided
     chat_template = None
     if args.template_file and Path(args.template_file).exists():
         chat_template = Path(args.template_file).read_text()
         print(f"Loaded custom template from {args.template_file}")
-    
+
     # Generate Modelfile
     modelfile = generate_modelfile(
         model_repo=args.model_repo,
         base_model=args.base_model,
         template=chat_template,
     )
-    
+
     # Write output
     output_path = Path(args.output)
     output_path.write_text(modelfile)
-    
+
     print(f"✅ Generated Modelfile: {output_path}")
     print("\n" + "=" * 60)
     print("To use with Ollama:")
     print(f"  ollama create my-model -f {output_path}")
     print("  ollama run my-model")
     print("=" * 60)
-    
+
     return 0
 
 

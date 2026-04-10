@@ -1,4 +1,5 @@
 """Tests for agent_loop.py — ResultsParser, ResearchAgent, ExperimentRunner."""
+
 import os
 import sys
 import pytest
@@ -7,12 +8,15 @@ from unittest.mock import MagicMock
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 from agent_loop import (
-    ExperimentResult, ResultsParser,
-    ResearchAgent, ExperimentRunner,
+    ExperimentResult,
+    ResultsParser,
+    ResearchAgent,
+    ExperimentRunner,
 )
 
 
 # --- ExperimentResult ---
+
 
 def test_experiment_result_defaults():
     r = ExperimentResult()
@@ -24,6 +28,7 @@ def test_experiment_result_defaults():
 
 
 # --- ResultsParser.parse_output ---
+
 
 def test_parse_output_success():
     output = """Training complete.
@@ -91,6 +96,7 @@ def test_parse_output_no_val_bpb():
 
 # --- ResultsParser.parse_tsv ---
 
+
 def test_parse_tsv():
     tsv = """commit\tval_bpb\tmemory_gb\tstatus\tdescription
 abc1234\t1.500000\t8.0\tkeep\tbaseline
@@ -123,6 +129,7 @@ def test_parse_tsv_empty():
 
 
 # --- ResultsParser.best_result ---
+
 
 def test_best_result():
     results = [
@@ -161,6 +168,7 @@ def test_best_result_empty():
 
 # --- ResearchAgent ---
 
+
 def test_research_agent_propose_change():
     mock_provider = MagicMock()
     mock_provider.chat.return_value = """I suggest adding RoPE scaling.
@@ -194,6 +202,7 @@ def test_research_agent_no_code_block():
 
 # --- ExperimentRunner ---
 
+
 def test_experiment_runner_write_read(tmp_path):
     runner = ExperimentRunner(work_dir=tmp_path)
     runner.write_code("print('hello')")
@@ -203,8 +212,7 @@ def test_experiment_runner_write_read(tmp_path):
 def test_experiment_runner_append_results_tsv(tmp_path):
     runner = ExperimentRunner(work_dir=tmp_path)
     result = ExperimentResult(
-        val_bpb=1.234, primary_metric_value=1.234, peak_vram_mb=8192,
-        status="keep", description="test change"
+        val_bpb=1.234, primary_metric_value=1.234, peak_vram_mb=8192, status="keep", description="test change"
     )
     runner.append_results_tsv("abc1234", result)
 
@@ -239,6 +247,7 @@ def test_experiment_runner_run_training(tmp_path):
 
 # --- Hardening Tests ---
 
+
 def test_experiment_runner_backup_on_write(tmp_path):
     runner = ExperimentRunner(work_dir=tmp_path)
     (tmp_path / "train.py").write_text("original")
@@ -264,13 +273,17 @@ def test_experiment_runner_read_missing_file(tmp_path):
 def test_experiment_runner_write_json_protocol(tmp_path):
     runner = ExperimentRunner(work_dir=tmp_path)
     result = ExperimentResult(
-        val_bpb=1.234, primary_metric_value=1.234, peak_vram_mb=8192,
-        status="keep", description="test change",
+        val_bpb=1.234,
+        primary_metric_value=1.234,
+        peak_vram_mb=8192,
+        status="keep",
+        description="test change",
         commit_hash="abc1234",
     )
     runner.write_experiment_json(1, result)
 
     import json
+
     exp_file = tmp_path / "results" / "experiments" / "exp-0001.json"
     assert exp_file.exists()
     data = json.loads(exp_file.read_text())

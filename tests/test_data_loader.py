@@ -1,4 +1,5 @@
 """Tests for legal data loader."""
+
 import json
 import os
 import sys
@@ -82,12 +83,17 @@ def test_cli_download_openlegaldata(monkeypatch, tmp_path, capsys):
 
     monkeypatch.setattr(LegalDataLoader, "download_openlegaldata", lambda self: fake_examples)
 
-    rc = main([
-        "download-openlegaldata",
-        "--output-dir", str(tmp_path / "legal"),
-        "--max-examples", "2",
-        "--output-name", "cases",
-    ])
+    rc = main(
+        [
+            "download-openlegaldata",
+            "--output-dir",
+            str(tmp_path / "legal"),
+            "--max-examples",
+            "2",
+            "--output-name",
+            "cases",
+        ]
+    )
     captured = capsys.readouterr()
     assert rc == 0
     payload = json.loads(captured.out)

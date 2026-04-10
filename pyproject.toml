@@ -64,3 +64,15 @@ torch = [
 name = "pytorch-cu124"
 url = "https://download.pytorch.org/whl/cu124"
 explicit = true
+
+[tool.ruff]
+exclude = ["upstream/", "archive/", ".git/", "patches/"]
+line-length = 120
+
+[tool.ruff.lint]
+select = ["E", "F", "W"]
+ignore = ["E402", "E501", "W291", "W293"]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**/*" = ["F841"]  # Allow unused variables in tests
+"audit_run.py" = ["F841", "I001"]

@@ -6,6 +6,7 @@ Supports a stable `transformers + peft + trl` backend plus an optional
 Usage:
     python -m finetune.trainer --config finetune/configs/sps-plc.yaml --eval
 """
+
 from __future__ import annotations
 
 import argparse
@@ -61,11 +62,13 @@ class TrainingSummary:
         ]
         for key in sorted(self.metrics):
             lines.append(f"{key}: {self.metrics[key]:.6f}")
-        lines.extend([
-            f"peak_vram_mb: {self.peak_vram_mb:.1f}",
-            f"training_seconds: {self.training_seconds:.2f}",
-            f"total_seconds: {self.total_seconds:.2f}",
-        ])
+        lines.extend(
+            [
+                f"peak_vram_mb: {self.peak_vram_mb:.1f}",
+                f"training_seconds: {self.training_seconds:.2f}",
+                f"total_seconds: {self.total_seconds:.2f}",
+            ]
+        )
         return lines
 
 
@@ -90,10 +93,17 @@ class QLoRAConfig:
     lora_alpha: int = 32
     lora_dropout: float = 0.0
     use_rslora: bool = False
-    target_modules: list[str] = field(default_factory=lambda: [
-        "q_proj", "k_proj", "v_proj", "o_proj",
-        "gate_proj", "up_proj", "down_proj",
-    ])
+    target_modules: list[str] = field(
+        default_factory=lambda: [
+            "q_proj",
+            "k_proj",
+            "v_proj",
+            "o_proj",
+            "gate_proj",
+            "up_proj",
+            "down_proj",
+        ]
+    )
 
     # Quantization
     bits: int = 4
@@ -162,9 +172,7 @@ def load_jsonl_records(path: Path) -> list[dict]:
                 try:
                     records.append(json.loads(line))
                 except json.JSONDecodeError as exc:
-                    raise ValueError(
-                        f"Invalid JSON in {file_path} line {line_number}"
-                    ) from exc
+                    raise ValueError(f"Invalid JSON in {file_path} line {line_number}") from exc
     if not records:
         raise ValueError(f"Dataset is empty: {path}")
     return records
@@ -174,25 +182,17 @@ def import_hf_datasets_module():
     """Import HuggingFace `datasets` without colliding with the local `datasets/` package."""
     project_root = Path(__file__).resolve().parents[1]
     saved_modules = {
-        name: module
-        for name, module in list(sys.modules.items())
-        if name == "datasets" or name.startswith("datasets.")
+        name: module for name, module in list(sys.modules.items()) if name == "datasets" or name.startswith("datasets.")
     }
     for name in saved_modules:
         sys.modules.pop(name, None)
 
     original_path = list(sys.path)
     try:
-        sys.path = [
-            path for path in sys.path
-            if Path(path).resolve() != project_root
-        ]
+        sys.path = [path for path in sys.path if Path(path).resolve() != project_root]
         return importlib.import_module("datasets")
     finally:
-        imported_modules = [
-            name for name in list(sys.modules)
-            if name == "datasets" or name.startswith("datasets.")
-        ]
+        imported_modules = [name for name in list(sys.modules) if name == "datasets" or name.startswith("datasets.")]
         for name in imported_modules:
             sys.modules.pop(name, None)
         sys.modules.update(saved_modules)
@@ -273,9 +273,7 @@ class QLoRATrainer:
         try:
             from unsloth import FastLanguageModel
         except ImportError as exc:
-            raise ImportError(
-                "Unsloth backend selected but `unsloth` is not installed."
-            ) from exc
+            raise ImportError("Unsloth backend selected but `unsloth` is not installed.") from exc
 
         self.model, self.tokenizer = FastLanguageModel.from_pretrained(
             model_name=self.config.base_model,
@@ -318,6 +316,7 @@ class QLoRATrainer:
         # --- Zeroth Seam: Prevent unauthorized fine-tuning ---
         sample = [train_dataset[i] for i in range(min(5, len(train_dataset)))] if train_dataset else []
         from dataclasses import asdict
+
         job_id = f"train-{Path(self.config.output_dir).name}"
         pre_train_zeroth_check(asdict(self.config), sample, job_id=job_id)
         # -----------------------------------------------------
@@ -358,17 +357,22 @@ class QLoRATrainer:
         safety_dataset = None
         if safety_path.exists():
             from finetune.data_formats import apply_alpaca_format
+
             s_records = load_jsonl_records(safety_path)
             texts = [apply_alpaca_format(r) for r in s_records]
-            encoded = self.tokenizer(texts, padding="max_length", truncation=True, max_length=self.config.max_seq_length, return_tensors="pt")
-            
+            encoded = self.tokenizer(
+                texts, padding="max_length", truncation=True, max_length=self.config.max_seq_length, return_tensors="pt"
+            )
+
             s_dataset_list = []
             for i in range(len(texts)):
-                s_dataset_list.append({
-                    "input_ids": encoded["input_ids"][i],
-                    "attention_mask": encoded["attention_mask"][i],
-                    "labels": encoded["input_ids"][i].clone()
-                })
+                s_dataset_list.append(
+                    {
+                        "input_ids": encoded["input_ids"][i],
+                        "attention_mask": encoded["attention_mask"][i],
+                        "labels": encoded["input_ids"][i].clone(),
+                    }
+                )
             safety_dataset = s_dataset_list
 
         trainer = SafeQLoRATrainer(**trainer_kwargs, safety_dataset=safety_dataset)
@@ -392,9 +396,7 @@ class QLoRATrainer:
 
         primary_value = metrics.get(self.config.primary_metric)
         if primary_value is None:
-            raise RuntimeError(
-                f"Primary metric `{self.config.primary_metric}` was not produced."
-            )
+            raise RuntimeError(f"Primary metric `{self.config.primary_metric}` was not produced.")
 
         peak_vram_mb = 0.0
         if torch.cuda.is_available():

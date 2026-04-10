@@ -45,7 +45,7 @@ def _normalize_tracked_paths(paths: list[str]) -> list[str]:
     normalized: list[str] = []
     for path in paths:
         if path.startswith(PRODUCT_PREFIX):
-            normalized.append(path[len(PRODUCT_PREFIX):])
+            normalized.append(path[len(PRODUCT_PREFIX) :])
     return normalized
 
 

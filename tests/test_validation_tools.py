@@ -1,4 +1,5 @@
 """Tests for validation registry and public-claim tooling."""
+
 import json
 import os
 import sys
@@ -50,25 +51,30 @@ def test_check_public_claims_respects_preview_registry(tmp_path, monkeypatch):
     validation_dir = tmp_path / "validation"
     validation_dir.mkdir()
     registry_path = validation_dir / "registry.json"
-    registry_path.write_text(json.dumps({
-        "version": 1,
-        "public_status": "technical_preview",
-        "tiers": {
-            "tier_a_rtx_3090_24gb": {
-                "label": "Verified on RTX 3090",
-                "required_successful_runs": 2,
-                "status": "unverified",
-                "notes": "Primary tier.",
-            },
-            "tier_b_48gb_plus": {
-                "label": "Verified on 48 GB+",
-                "required_successful_runs": 2,
-                "status": "unverified",
-                "notes": "Secondary tier.",
-            },
-        },
-        "runs": [],
-    }), encoding="utf-8")
+    registry_path.write_text(
+        json.dumps(
+            {
+                "version": 1,
+                "public_status": "technical_preview",
+                "tiers": {
+                    "tier_a_rtx_3090_24gb": {
+                        "label": "Verified on RTX 3090",
+                        "required_successful_runs": 2,
+                        "status": "unverified",
+                        "notes": "Primary tier.",
+                    },
+                    "tier_b_48gb_plus": {
+                        "label": "Verified on 48 GB+",
+                        "required_successful_runs": 2,
+                        "status": "unverified",
+                        "notes": "Secondary tier.",
+                    },
+                },
+                "runs": [],
+            }
+        ),
+        encoding="utf-8",
+    )
     readme = tmp_path / "README.md"
     readme.write_text("# TuneForge\n\nTechnical Preview\n", encoding="utf-8")
 

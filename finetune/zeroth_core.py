@@ -38,6 +38,7 @@ class ZerothConnectionError(Exception):
 # Dataset hashing helper
 # ---------------------------------------------------------------------------
 
+
 def _hash_dataset(records: List[Dict[str, Any]]) -> str:
     """
     Produce a deterministic SHA-256 fingerprint of a dataset.
@@ -59,7 +60,7 @@ def pre_train_zeroth_check(
     config: dict,
     dataset_records: List[Dict[str, Any]],
     job_id: str,
-    state_machine=None,   # Optional[StateMachine]  – avoids circular import
+    state_machine=None,  # Optional[StateMachine]  – avoids circular import
 ) -> str:
     """
     Must be called BEFORE any optimizer step is run.
@@ -151,6 +152,7 @@ def pre_publish_zeroth_check(
 # Tag extraction helper
 # ---------------------------------------------------------------------------
 
+
 def _extract_tags(config: dict) -> List[str]:
     """
     Extract Seraph Aegis policy tags from a config / metadata dict.
@@ -167,4 +169,4 @@ def _extract_tags(config: dict) -> List[str]:
     if "restricted" in dataset_name.lower():
         raw_tags.append("restricted_dataset")
 
-    return list(set(raw_tags))   # deduplicate
+    return list(set(raw_tags))  # deduplicate

@@ -1,4 +1,5 @@
 """Pytest configuration and fixtures for integration tests."""
+
 import os
 import sys
 import json
@@ -40,7 +41,7 @@ def sample_dataset_file(temp_output_dir):
 def sample_config(temp_output_dir, sample_dataset_file):
     """Create a sample training configuration."""
     from finetune.trainer import QLoRAConfig
-    
+
     config = QLoRAConfig(
         base_model="Qwen/Qwen2.5-0.5B-Instruct",  # Small model for testing
         output_dir=str(temp_output_dir / "output"),
@@ -61,7 +62,7 @@ def mock_hf_datasets():
     """Mock HuggingFace datasets for integration testing."""
     with patch("finetune.trainer.import_hf_datasets_module") as mock_import:
         mock_hf_module = MagicMock()
-        
+
         # Create a mock Dataset class
         mock_dataset = MagicMock()
         mock_dataset.train_test_split.return_value = {
@@ -69,7 +70,7 @@ def mock_hf_datasets():
             "test": MagicMock(),
         }
         mock_hf_module.Dataset.from_list.return_value = mock_dataset
-        
+
         mock_import.return_value = mock_hf_module
         yield mock_import
 
@@ -77,17 +78,18 @@ def mock_hf_datasets():
 @pytest.fixture
 def mock_model_loading():
     """Mock model and tokenizer loading for fast tests."""
-    with patch("transformers.AutoModelForCausalLM.from_pretrained") as mock_model, \
-         patch("transformers.AutoTokenizer.from_pretrained") as mock_tokenizer:
-        
+    with (
+        patch("transformers.AutoModelForCausalLM.from_pretrained") as mock_model,
+        patch("transformers.AutoTokenizer.from_pretrained") as mock_tokenizer,
+    ):
         mock_model_instance = MagicMock()
         mock_model.return_value = mock_model_instance
-        
+
         mock_tokenizer_instance = MagicMock()
         mock_tokenizer_instance.pad_token = None
         mock_tokenizer_instance.eos_token = "</s>"
         mock_tokenizer.return_value = mock_tokenizer_instance
-        
+
         yield mock_model, mock_tokenizer
 
 
@@ -96,9 +98,7 @@ def mock_trl_trainer():
     """Mock TRL SFTTrainer for testing."""
     with patch("trl.SFTTrainer") as mock_trainer_class:
         mock_trainer = MagicMock()
-        mock_trainer.train.return_value = MagicMock(
-            metrics={"train_loss": 0.5, "eval_loss": 0.4}
-        )
+        mock_trainer.train.return_value = MagicMock(metrics={"train_loss": 0.5, "eval_loss": 0.4})
         mock_trainer_class.return_value = mock_trainer
         yield mock_trainer_class
 
@@ -113,14 +113,14 @@ def clean_env():
         "CUDA_VISIBLE_DEVICES",
     ]
     original_values = {}
-    
+
     for var in env_vars_to_clear:
         original_values[var] = os.environ.get(var)
         if var in os.environ:
             del os.environ[var]
-    
+
     yield
-    
+
     # Restore original values
     for var, value in original_values.items():
         if value is not None:

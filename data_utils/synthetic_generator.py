@@ -10,6 +10,7 @@ Usage:
     gen = SyntheticGenerator(provider=provider)
     examples = gen.generate_batch("pid_controller", "basic", count=5)
 """
+
 import json
 import logging
 from dataclasses import dataclass, field
@@ -21,19 +22,36 @@ logger = logging.getLogger(__name__)
 
 SPS_CATEGORIES = [
     # Basic control
-    "pid_controller", "on_off_controller", "cascade_control",
-    "motor_start_stop", "star_delta_starter", "vfd_control",
+    "pid_controller",
+    "on_off_controller",
+    "cascade_control",
+    "motor_start_stop",
+    "star_delta_starter",
+    "vfd_control",
     # Process control
-    "batch_sequence", "tank_level_control", "conveyor_belt",
-    "sorting_station", "pick_and_place", "palletizer",
+    "batch_sequence",
+    "tank_level_control",
+    "conveyor_belt",
+    "sorting_station",
+    "pick_and_place",
+    "palletizer",
     # Safety
-    "emergency_stop", "light_curtain", "safety_gate",
-    "two_hand_control", "safe_speed_monitor",
+    "emergency_stop",
+    "light_curtain",
+    "safety_gate",
+    "two_hand_control",
+    "safe_speed_monitor",
     # Communication
-    "modbus_rtu_read", "profinet_io", "opc_ua_client",
+    "modbus_rtu_read",
+    "profinet_io",
+    "opc_ua_client",
     # Data handling
-    "recipe_manager", "alarm_handler", "data_logger",
-    "fifo_buffer", "moving_average", "timer_manager",
+    "recipe_manager",
+    "alarm_handler",
+    "data_logger",
+    "fifo_buffer",
+    "moving_average",
+    "timer_manager",
 ]
 
 COMPLEXITY_LEVELS = ["basic", "intermediate", "advanced"]
@@ -67,6 +85,7 @@ class GenerationTask:
 @dataclass
 class SyntheticGenerator:
     """Generate synthetic SPS/PLC training data using any LLM provider."""
+
     provider: object  # LLMProvider instance
     output_dir: Path = field(default_factory=lambda: Path("datasets/generated/sps"))
     max_tokens: int = 4096
@@ -74,9 +93,9 @@ class SyntheticGenerator:
     def __post_init__(self):
         self.output_dir.mkdir(parents=True, exist_ok=True)
 
-    def generate_batch(self, category: str, complexity: str,
-                       count: int = 5, language: str = "structured_text"
-                       ) -> list[dict]:
+    def generate_batch(
+        self, category: str, complexity: str, count: int = 5, language: str = "structured_text"
+    ) -> list[dict]:
         """Generate a batch of examples for one category/complexity."""
         examples = []
         for i in range(count):
@@ -89,17 +108,20 @@ class SyntheticGenerator:
 
             try:
                 response = self.provider.chat(
-                    messages=[{
-                        "role": "system",
-                        "content": (
-                            "You are an expert PLC/SPS programmer. "
-                            "Generate IEC 61131-3 compliant code. "
-                            "Always use proper variable declarations."
-                        ),
-                    }, {
-                        "role": "user",
-                        "content": prompt,
-                    }],
+                    messages=[
+                        {
+                            "role": "system",
+                            "content": (
+                                "You are an expert PLC/SPS programmer. "
+                                "Generate IEC 61131-3 compliant code. "
+                                "Always use proper variable declarations."
+                            ),
+                        },
+                        {
+                            "role": "user",
+                            "content": prompt,
+                        },
+                    ],
                     max_tokens=self.max_tokens,
                     temperature=0.8,
                 )
@@ -109,11 +131,9 @@ class SyntheticGenerator:
                     output=response,
                 )
                 examples.append(to_alpaca_format(example))
-                logger.info(
-                    f"Generated {category}/{complexity} [{i+1}/{count}]"
-                )
+                logger.info(f"Generated {category}/{complexity} [{i + 1}/{count}]")
             except Exception as e:
-                logger.warning(f"Failed {category}/{complexity} [{i+1}]: {e}")
+                logger.warning(f"Failed {category}/{complexity} [{i + 1}]: {e}")
 
         return examples
 
@@ -126,11 +146,11 @@ class SyntheticGenerator:
         for category in SPS_CATEGORIES:
             for complexity in COMPLEXITY_LEVELS:
                 done += 1
-                logger.info(
-                    f"[{done}/{total}] Generating {category}/{complexity}"
-                )
+                logger.info(f"[{done}/{total}] Generating {category}/{complexity}")
                 batch = self.generate_batch(
-                    category, complexity, count=examples_per_combo,
+                    category,
+                    complexity,
+                    count=examples_per_combo,
                 )
                 all_examples.extend(batch)
 

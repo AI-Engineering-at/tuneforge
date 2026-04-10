@@ -1,4 +1,5 @@
 """Tests for TuneForge public-repo documentation and audit tooling."""
+
 import json
 import os
 import sys
@@ -16,19 +17,11 @@ def test_check_docs_parity_accepts_minimal_pair(tmp_path, monkeypatch):
     readme = tmp_path / "README.md"
     readme_de = tmp_path / "README-DE.md"
     readme.write_text(
-        "# TuneForge\n"
-        "- Language: EN\n"
-        "- Audience: Public\n"
-        "- Last Sync: 2026-03-19\n"
-        "- Pair: README-DE.md\n",
+        "# TuneForge\n- Language: EN\n- Audience: Public\n- Last Sync: 2026-03-19\n- Pair: README-DE.md\n",
         encoding="utf-8",
     )
     readme_de.write_text(
-        "# TuneForge\n"
-        "- Language: DE\n"
-        "- Audience: Public\n"
-        "- Last Sync: 2026-03-19\n"
-        "- Pair: README.md\n",
+        "# TuneForge\n- Language: DE\n- Audience: Public\n- Last Sync: 2026-03-19\n- Pair: README.md\n",
         encoding="utf-8",
     )
 
@@ -60,19 +53,11 @@ def test_check_template_completeness_accepts_minimal_templates(tmp_path, monkeyp
     de = tmp_path / "templates" / "MODEL_CARD_TEMPLATE-DE.md"
     en.parent.mkdir()
     en.write_text(
-        "# Template\n"
-        "## Required Fields\n"
-        "- a\n"
-        "## Completion Notes\n"
-        "- b\n",
+        "# Template\n## Required Fields\n- a\n## Completion Notes\n- b\n",
         encoding="utf-8",
     )
     de.write_text(
-        "# Template\n"
-        "## Pflichtfelder\n"
-        "- a\n"
-        "## Hinweise zur Ausfuellung\n"
-        "- b\n",
+        "# Template\n## Pflichtfelder\n- a\n## Hinweise zur Ausfuellung\n- b\n",
         encoding="utf-8",
     )
 
@@ -112,62 +97,81 @@ def test_validate_audit_pack_accepts_minimal_examples(tmp_path, monkeypatch):
         encoding="utf-8",
     )
     (audit_root / "siem-export.schema.json").write_text(
-        json.dumps({"required": ["event_time", "event_source", "event_category", "severity", "message", "run_id", "git_sha"]}),
+        json.dumps(
+            {"required": ["event_time", "event_source", "event_category", "severity", "message", "run_id", "git_sha"]}
+        ),
         encoding="utf-8",
     )
     (examples / "protocol.sample.jsonl").write_text(
-        json.dumps({
-            "timestamp": "2026-03-19T08:00:00Z",
-            "run_id": "r1",
-            "event_type": "run.started",
-            "stage": "train",
-            "status": "started",
-            "message": "started",
-            "git_sha": "abc1234",
-        }) + "\n",
+        json.dumps(
+            {
+                "timestamp": "2026-03-19T08:00:00Z",
+                "run_id": "r1",
+                "event_type": "run.started",
+                "stage": "train",
+                "status": "started",
+                "message": "started",
+                "git_sha": "abc1234",
+            }
+        )
+        + "\n",
         encoding="utf-8",
     )
     (examples / "error-registry.sample.json").write_text(
-        json.dumps([{
-            "error_id": "ERR-1",
-            "severity": "medium",
-            "summary": "Summary",
-            "mitigation": "Mitigation",
-            "last_reviewed": "2026-03-19",
-        }]),
+        json.dumps(
+            [
+                {
+                    "error_id": "ERR-1",
+                    "severity": "medium",
+                    "summary": "Summary",
+                    "mitigation": "Mitigation",
+                    "last_reviewed": "2026-03-19",
+                }
+            ]
+        ),
         encoding="utf-8",
     )
     (examples / "incident-log.sample.json").write_text(
-        json.dumps([{
-            "incident_id": "INC-1",
-            "severity": "high",
-            "opened_at": "2026-03-19T09:00:00Z",
-            "status": "closed",
-            "summary": "Summary",
-            "impact": "Impact",
-        }]),
+        json.dumps(
+            [
+                {
+                    "incident_id": "INC-1",
+                    "severity": "high",
+                    "opened_at": "2026-03-19T09:00:00Z",
+                    "status": "closed",
+                    "summary": "Summary",
+                    "impact": "Impact",
+                }
+            ]
+        ),
         encoding="utf-8",
     )
     (examples / "release-decision-log.sample.json").write_text(
-        json.dumps([{
-            "release_id": "REL-1",
-            "decision": "publish",
-            "status": "technical_preview",
-            "approved_by": ["engineering-review"],
-            "evidence_refs": ["validation/registry.json"],
-        }]),
+        json.dumps(
+            [
+                {
+                    "release_id": "REL-1",
+                    "decision": "publish",
+                    "status": "technical_preview",
+                    "approved_by": ["engineering-review"],
+                    "evidence_refs": ["validation/registry.json"],
+                }
+            ]
+        ),
         encoding="utf-8",
     )
     (examples / "siem-event.sample.json").write_text(
-        json.dumps({
-            "event_time": "2026-03-19T09:15:00Z",
-            "event_source": "tuneforge",
-            "event_category": "validation",
-            "severity": "info",
-            "message": "Registry preview.",
-            "run_id": "r1",
-            "git_sha": "abc1234",
-        }),
+        json.dumps(
+            {
+                "event_time": "2026-03-19T09:15:00Z",
+                "event_source": "tuneforge",
+                "event_category": "validation",
+                "severity": "info",
+                "message": "Registry preview.",
+                "run_id": "r1",
+                "git_sha": "abc1234",
+            }
+        ),
         encoding="utf-8",
     )
 

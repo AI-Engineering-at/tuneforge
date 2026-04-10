@@ -20,6 +20,7 @@ import sys
 from pathlib import Path
 
 import matplotlib
+
 matplotlib.use("Agg")  # non-interactive backend for headless/Docker use
 import matplotlib.pyplot as plt
 import matplotlib.ticker as ticker
@@ -52,6 +53,7 @@ COLORS = {
 # ---------------------------------------------------------------------------
 # Data loading
 # ---------------------------------------------------------------------------
+
 
 def find_results_dir(override: str | None = None) -> Path:
     """Resolve the results directory. Priority: CLI arg > ./results > /app/results."""
@@ -121,6 +123,7 @@ def _parse_float(value: str) -> float | None:
 # Charts
 # ---------------------------------------------------------------------------
 
+
 def make_charts(experiments: list[dict], chart_dir: Path) -> None:
     """Generate all PNG charts and save to chart_dir."""
     chart_dir.mkdir(parents=True, exist_ok=True)
@@ -150,8 +153,7 @@ def chart_val_bpb(experiments: list[dict], chart_dir: Path) -> None:
     # Scatter: color by status
     for e in valid:
         color = COLORS.get(e["status"], COLORS["crashed"])
-        ax.scatter(e["num"], e["val_bpb"], color=color, s=40, zorder=2,
-                   edgecolors="white", linewidths=0.5)
+        ax.scatter(e["num"], e["val_bpb"], color=color, s=40, zorder=2, edgecolors="white", linewidths=0.5)
 
     ax.set_xlabel("Experiment #")
     ax.set_ylabel("val_bpb (lower is better)")
@@ -160,11 +162,10 @@ def chart_val_bpb(experiments: list[dict], chart_dir: Path) -> None:
 
     # Legend
     from matplotlib.lines import Line2D
+
     legend_elements = [
-        Line2D([0], [0], marker="o", color="w", markerfacecolor=COLORS["kept"],
-               markersize=8, label="Kept"),
-        Line2D([0], [0], marker="o", color="w", markerfacecolor=COLORS["discarded"],
-               markersize=8, label="Discarded"),
+        Line2D([0], [0], marker="o", color="w", markerfacecolor=COLORS["kept"], markersize=8, label="Kept"),
+        Line2D([0], [0], marker="o", color="w", markerfacecolor=COLORS["discarded"], markersize=8, label="Discarded"),
     ]
     ax.legend(handles=legend_elements, loc="upper right")
     ax.grid(True, alpha=0.3)
@@ -224,8 +225,7 @@ def chart_keep_ratio(experiments: list[dict], chart_dir: Path) -> None:
     colors = [color_map.get(line, "#bdc3c7") for line in labels]
 
     wedges, texts, autotexts = ax.pie(
-        sizes, labels=labels, colors=colors, autopct="%1.0f%%",
-        startangle=90, textprops={"fontsize": 12}
+        sizes, labels=labels, colors=colors, autopct="%1.0f%%", startangle=90, textprops={"fontsize": 12}
     )
     ax.set_title("Experiment Outcomes")
 
@@ -253,8 +253,16 @@ def chart_best_progression(experiments: list[dict], chart_dir: Path) -> None:
         nums.append(e["num"])
         best_vals.append(current_best)
 
-    ax.plot(nums, best_vals, color=COLORS["best"], linewidth=2, marker="o",
-            markersize=6, markerfacecolor=COLORS["best"], markeredgecolor="white")
+    ax.plot(
+        nums,
+        best_vals,
+        color=COLORS["best"],
+        linewidth=2,
+        marker="o",
+        markersize=6,
+        markerfacecolor=COLORS["best"],
+        markeredgecolor="white",
+    )
     ax.fill_between(nums, best_vals, alpha=0.1, color=COLORS["best"])
 
     ax.set_xlabel("Experiment # (kept only)")
@@ -271,6 +279,7 @@ def chart_best_progression(experiments: list[dict], chart_dir: Path) -> None:
 # ---------------------------------------------------------------------------
 # Terminal summary
 # ---------------------------------------------------------------------------
+
 
 def print_summary(experiments: list[dict]) -> None:
     """Print a concise terminal summary of the experiment run."""
@@ -335,13 +344,14 @@ def _pct(part: int, total: int) -> str:
 # Main
 # ---------------------------------------------------------------------------
 
+
 def main():
-    parser = argparse.ArgumentParser(
-        description="Visualize autoresearch experiment results."
-    )
+    parser = argparse.ArgumentParser(description="Visualize autoresearch experiment results.")
     parser.add_argument(
-        "--results-dir", type=str, default=None,
-        help="Path to results directory containing results.tsv (default: ./results or /app/results)"
+        "--results-dir",
+        type=str,
+        default=None,
+        help="Path to results directory containing results.tsv (default: ./results or /app/results)",
     )
     args = parser.parse_args()
 

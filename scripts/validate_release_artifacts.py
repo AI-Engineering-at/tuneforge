@@ -85,7 +85,9 @@ def _read_json(path: Path) -> dict[str, Any]:
     return json.loads(path.read_text(encoding="utf-8"))
 
 
-def _has_required_keys(payload: dict[str, Any], required_keys: set[str], label: str, errors: list[str], bundle_dir: Path):
+def _has_required_keys(
+    payload: dict[str, Any], required_keys: set[str], label: str, errors: list[str], bundle_dir: Path
+):
     for key in required_keys:
         if key not in payload:
             errors.append(f"{bundle_dir}: {label} missing {key}")

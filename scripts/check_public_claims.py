@@ -56,9 +56,7 @@ def check_public_claims() -> list[str]:
 
         for label, tier_name in GATED_LABELS.items():
             if label in text and statuses.get(tier_name) != "verified":
-                errors.append(
-                    f"{path.relative_to(ROOT)} uses gated label '{label}' without verified registry status"
-                )
+                errors.append(f"{path.relative_to(ROOT)} uses gated label '{label}' without verified registry status")
 
         if path in {ROOT / "README.md", ROOT / "README-DE.md"} and statuses.get("public_status") == "technical_preview":
             if "Technical Preview" not in text:

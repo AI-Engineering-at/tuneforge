@@ -1,4 +1,5 @@
 """Tests for IEC 61131-3 Structured Text validator."""
+
 import os
 import sys
 

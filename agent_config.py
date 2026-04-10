@@ -2,6 +2,7 @@
 
 Supports multiple LLM providers. Default: Ollama (free, local).
 """
+
 import os
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -51,9 +52,7 @@ class AgentConfig:
     def __post_init__(self):
         # Set provider-specific default model
         if not self.model:
-            self.model = PROVIDER_REGISTRY.get(self.provider, {}).get(
-                "default_model", "qwen2.5-coder:7b"
-            )
+            self.model = PROVIDER_REGISTRY.get(self.provider, {}).get("default_model", "qwen2.5-coder:7b")
         if self.metric_goal not in {"maximize", "minimize"}:
             raise ValueError(f"Unsupported metric_goal: {self.metric_goal}")
         # Provider-specific env var shortcuts

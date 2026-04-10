@@ -1,4 +1,5 @@
 """Tests for multi-LLM provider abstraction."""
+
 import pytest
 from unittest.mock import MagicMock, patch
 import sys
@@ -7,9 +8,7 @@ import os
 # Add parent dir to path for imports
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
-from providers import (
-    create_provider, PROVIDER_REGISTRY
-)
+from providers import create_provider, PROVIDER_REGISTRY
 
 
 def test_provider_registry_has_all():
@@ -43,10 +42,7 @@ def test_create_ollama_provider(mock_openai):
 
 @patch("openai.OpenAI")
 def test_create_openrouter_provider(mock_openai):
-    provider = create_provider(
-        "openrouter", api_key="test-key",
-        model="anthropic/claude-sonnet-4-20250514"
-    )
+    provider = create_provider("openrouter", api_key="test-key", model="anthropic/claude-sonnet-4-20250514")
     assert provider.name == "openrouter"
     assert "openrouter.ai" in provider.base_url
     assert "HTTP-Referer" in provider.extra_headers
@@ -74,9 +70,7 @@ def test_create_provider_with_custom_model(mock_openai):
 
 @patch("openai.OpenAI")
 def test_create_provider_with_custom_base_url(mock_openai):
-    provider = create_provider(
-        "ollama", base_url="http://localhost:11434/v1"
-    )
+    provider = create_provider("ollama", base_url="http://localhost:11434/v1")
     assert provider.base_url == "http://localhost:11434/v1"
 
 
@@ -118,15 +112,15 @@ def test_anthropic_chat_separates_system(mock_anthropic_cls):
     """Test that AnthropicProvider correctly separates system messages."""
     mock_client = MagicMock()
     mock_anthropic_cls.return_value = mock_client
-    mock_client.messages.create.return_value = MagicMock(
-        content=[MagicMock(text="optimized code")]
-    )
+    mock_client.messages.create.return_value = MagicMock(content=[MagicMock(text="optimized code")])
 
     provider = create_provider("claude", api_key="test-key")
-    result = provider.chat([
-        {"role": "system", "content": "You are a researcher"},
-        {"role": "user", "content": "Optimize train.py"},
-    ])
+    result = provider.chat(
+        [
+            {"role": "system", "content": "You are a researcher"},
+            {"role": "user", "content": "Optimize train.py"},
+        ]
+    )
 
     assert result == "optimized code"
     call_kwargs = mock_client.messages.create.call_args[1]

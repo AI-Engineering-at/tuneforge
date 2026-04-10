@@ -11,6 +11,7 @@ Usage:
     provider = create_provider("claude", api_key=os.environ["ANTHROPIC_API_KEY"])
     response = provider.chat([{"role": "user", "content": "..."}])
 """
+
 import logging
 import os
 import time
@@ -31,8 +32,7 @@ class LLMProvider(ABC):
     def name(self) -> str: ...
 
     @abstractmethod
-    def chat(self, messages: list[dict], max_tokens: int = 4096,
-             temperature: float = 0.7) -> str:
+    def chat(self, messages: list[dict], max_tokens: int = 4096, temperature: float = 0.7) -> str:
         """Send messages, get response text. Universal interface."""
         ...
 
@@ -40,6 +40,7 @@ class LLMProvider(ABC):
 @dataclass
 class AnthropicProvider(LLMProvider):
     """Claude via Anthropic API (different SDK, different message format)."""
+
     api_key: str = ""
     model: str = "claude-sonnet-4-20250514"
     _client: object = field(default=None, repr=False)
@@ -50,10 +51,10 @@ class AnthropicProvider(LLMProvider):
 
     def __post_init__(self):
         import anthropic
+
         self._client = anthropic.Anthropic(api_key=self.api_key)
 
-    def chat(self, messages: list[dict], max_tokens: int = 4096,
-             temperature: float = 0.7) -> str:
+    def chat(self, messages: list[dict], max_tokens: int = 4096, temperature: float = 0.7) -> str:
         # Anthropic: system message is separate, not in messages array
         system = ""
         filtered = []
@@ -80,7 +81,7 @@ class AnthropicProvider(LLMProvider):
             except Exception as e:
                 last_error = e
                 if attempt < MAX_RETRIES:
-                    wait = RETRY_BACKOFF_BASE ** attempt
+                    wait = RETRY_BACKOFF_BASE**attempt
                     logger.warning(f"Claude API error (attempt {attempt}/{MAX_RETRIES}): {e} — retrying in {wait}s")
                     time.sleep(wait)
         raise ConnectionError(f"Claude API failed after {MAX_RETRIES} attempts: {last_error}")
@@ -93,6 +94,7 @@ class OpenAICompatProvider(LLMProvider):
     The openai Python SDK supports custom base_url, so we reuse it for
     ALL OpenAI-compatible providers. Only the base_url and headers differ.
     """
+
     api_key: str = ""
     model: str = "gpt-4o"
     base_url: str = "https://api.openai.com/v1"
@@ -106,14 +108,14 @@ class OpenAICompatProvider(LLMProvider):
 
     def __post_init__(self):
         from openai import OpenAI
+
         self._client = OpenAI(
             api_key=self.api_key or "ollama",  # Ollama doesn't need a key
             base_url=self.base_url,
             default_headers=self.extra_headers or None,
         )
 
-    def chat(self, messages: list[dict], max_tokens: int = 4096,
-             temperature: float = 0.7) -> str:
+    def chat(self, messages: list[dict], max_tokens: int = 4096, temperature: float = 0.7) -> str:
         last_error = None
         for attempt in range(1, MAX_RETRIES + 1):
             try:
@@ -127,8 +129,10 @@ class OpenAICompatProvider(LLMProvider):
             except Exception as e:
                 last_error = e
                 if attempt < MAX_RETRIES:
-                    wait = RETRY_BACKOFF_BASE ** attempt
-                    logger.warning(f"{self.provider_name} API error (attempt {attempt}/{MAX_RETRIES}): {e} — retrying in {wait}s")
+                    wait = RETRY_BACKOFF_BASE**attempt
+                    logger.warning(
+                        f"{self.provider_name} API error (attempt {attempt}/{MAX_RETRIES}): {e} — retrying in {wait}s"
+                    )
                     time.sleep(wait)
         raise ConnectionError(f"{self.provider_name} API failed after {MAX_RETRIES} attempts: {last_error}")
 
@@ -192,12 +196,11 @@ PROVIDER_REGISTRY = {
         "base_url": "https://api.groq.com/openai/v1",
         "default_model": "llama-3.3-70b-versatile",
         "needs_key": True,
-    }
+    },
 }
 
 
-def create_provider(provider_name: str, api_key: str = "",
-                    model: str = None, base_url: str = None) -> LLMProvider:
+def create_provider(provider_name: str, api_key: str = "", model: str = None, base_url: str = None) -> LLMProvider:
     """Factory: create a provider by name.
 
     Usage:
@@ -206,10 +209,7 @@ def create_provider(provider_name: str, api_key: str = "",
         provider = create_provider("openrouter", api_key="sk-...", model="anthropic/claude-sonnet-4-20250514")
     """
     if provider_name not in PROVIDER_REGISTRY:
-        raise ValueError(
-            f"Unknown provider: {provider_name}. "
-            f"Available: {list(PROVIDER_REGISTRY.keys())}"
-        )
+        raise ValueError(f"Unknown provider: {provider_name}. Available: {list(PROVIDER_REGISTRY.keys())}")
 
     reg = PROVIDER_REGISTRY[provider_name]
     model = model or reg["default_model"]
@@ -241,8 +241,14 @@ ENV_VAR_MAP = {
 }
 
 QUOTA_INDICATORS = [
-    "429", "rate limit", "quota", "resource_exhausted",
-    "RESOURCE_EXHAUSTED", "too many requests", "billing", "insufficient_quota",
+    "429",
+    "rate limit",
+    "quota",
+    "resource_exhausted",
+    "RESOURCE_EXHAUSTED",
+    "too many requests",
+    "billing",
+    "insufficient_quota",
 ]
 
 
@@ -311,7 +317,7 @@ class FallbackProvider(LLMProvider):
                 errors.append(f"{label}: {e}")
                 if _is_quota_error(e):
                     self._exhausted.add(idx)
-        error_log = "\n".join(f"  [{i+1}] {err}" for i, err in enumerate(errors))
+        error_log = "\n".join(f"  [{i + 1}] {err}" for i, err in enumerate(errors))
         raise ConnectionError(f"ALL {len(self.providers)} providers failed:\n{error_log}")
 
 
@@ -330,7 +336,7 @@ def create_fallback_chain(provider_names=None, models=None):
 
     for i, pname in enumerate(provider_names):
         if pname not in PROVIDER_REGISTRY:
-            logger.warning(f"Unknown provider \'{pname}\' in fallback chain")
+            logger.warning(f"Unknown provider '{pname}' in fallback chain")
             continue
         env_vars = ENV_VAR_MAP.get(pname, [])
         count = key_usage_count.get(pname, 0)

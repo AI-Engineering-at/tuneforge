@@ -1,4 +1,5 @@
 """Tests for finetune/operability.py - StateMachine, Logging, Metrics."""
+
 import pytest
 from unittest.mock import patch
 from finetune.operability import (
@@ -12,6 +13,7 @@ from finetune.operability import (
 # ============================================================================
 # TrainingState Enum Tests
 # ============================================================================
+
 
 def test_training_state_is_operational():
     """Test is_operational property."""
@@ -58,6 +60,7 @@ def test_training_state_description():
 # StateMachine Tests
 # ============================================================================
 
+
 def test_state_machine_init():
     """Test StateMachine initialization."""
     sm = StateMachine(node_id="node-1", job_id="job-123")
@@ -69,11 +72,11 @@ def test_state_machine_init():
 def test_state_machine_valid_transition():
     """Test valid state transitions."""
     sm = StateMachine(node_id="node-1", job_id="job-123")
-    
+
     # OPERATIONAL -> DEGRADED_VRAM
     sm.transition(TrainingState.DEGRADED_VRAM, "CUDA OOM")
     assert sm.state == TrainingState.DEGRADED_VRAM
-    
+
     # DEGRADED_VRAM -> OPERATIONAL
     sm.transition(TrainingState.OPERATIONAL, "Recovered")
     assert sm.state == TrainingState.OPERATIONAL
@@ -82,11 +85,11 @@ def test_state_machine_valid_transition():
 def test_state_machine_invalid_transition():
     """Test that invalid transitions raise RuntimeError."""
     sm = StateMachine(node_id="node-1", job_id="job-123")
-    
+
     # OPERATIONAL -> HALTED_CORE_FAULT (allowed)
     sm.transition(TrainingState.HALTED_CORE_FAULT, "Fatal error")
     assert sm.state == TrainingState.HALTED_CORE_FAULT
-    
+
     # HALTED states are terminal - no transitions allowed
     with pytest.raises(RuntimeError, match="Illegal state transition"):
         sm.transition(TrainingState.OPERATIONAL, "Trying to recover")
@@ -95,14 +98,14 @@ def test_state_machine_invalid_transition():
 def test_state_machine_assert_can_train():
     """Test assert_can_train method."""
     sm = StateMachine(node_id="node-1", job_id="job-123")
-    
+
     # Should not raise in OPERATIONAL
     sm.assert_can_train()
-    
+
     # Should not raise in DEGRADED_VRAM
     sm.transition(TrainingState.DEGRADED_VRAM, "OOM")
     sm.assert_can_train()
-    
+
     # Should raise in HALTED
     sm.transition(TrainingState.HALTED_CORE_FAULT, "Fatal")
     with pytest.raises(RuntimeError, match="Training blocked"):
@@ -112,7 +115,7 @@ def test_state_machine_assert_can_train():
 def test_state_machine_all_valid_transitions():
     """Test all valid transition paths from _TRANSITIONS."""
     sm = StateMachine(node_id="node-1", job_id="job-123")
-    
+
     # Test all transitions defined in _TRANSITIONS
     transitions_to_test = [
         (TrainingState.OPERATIONAL, TrainingState.DEGRADED_VRAM),
@@ -128,7 +131,7 @@ def test_state_machine_all_valid_transitions():
         (TrainingState.DEGRADED_AEGIS, TrainingState.OPERATIONAL),
         (TrainingState.DEGRADED_AEGIS, TrainingState.HALTED_CORE_FAULT),
     ]
-    
+
     for from_state, to_state in transitions_to_test:
         sm = StateMachine(node_id="node-1", job_id="job-123")
         if from_state != TrainingState.OPERATIONAL:
@@ -142,6 +145,7 @@ def test_state_machine_all_valid_transitions():
 # StructuredLogger Tests
 # ============================================================================
 
+
 def test_structured_logger_init():
     """Test StructuredLogger initialization."""
     logger = StructuredLogger("test.logger")
@@ -152,12 +156,12 @@ def test_structured_logger_emit():
     """Test emit method creates valid JSON."""
     import json
     import logging
-    
+
     # Capture log output
-    with patch.object(logging.Logger, 'info') as mock_info:
+    with patch.object(logging.Logger, "info") as mock_info:
         logger = StructuredLogger("test.logger")
         logger.emit("info", "test_event", key1="value1", key2=123)
-        
+
         # Verify the logged message is valid JSON
         call_args = mock_info.call_args[0][0]
         record = json.loads(call_args)
@@ -172,22 +176,22 @@ def test_structured_logger_emit():
 def test_structured_logger_convenience_methods():
     """Test convenience methods (info, warn, error, debug)."""
     import logging
-    
+
     logger = StructuredLogger("test.logger")
-    
-    with patch.object(logging.Logger, 'info') as mock_info:
+
+    with patch.object(logging.Logger, "info") as mock_info:
         logger.info("info_event")
         assert mock_info.called
-    
-    with patch.object(logging.Logger, 'warning') as mock_warning:
+
+    with patch.object(logging.Logger, "warning") as mock_warning:
         logger.warn("warn_event")
         assert mock_warning.called
-    
-    with patch.object(logging.Logger, 'error') as mock_error:
+
+    with patch.object(logging.Logger, "error") as mock_error:
         logger.error("error_event")
         assert mock_error.called
-    
-    with patch.object(logging.Logger, 'debug') as mock_debug:
+
+    with patch.object(logging.Logger, "debug") as mock_debug:
         logger.debug("debug_event")
         assert mock_debug.called
 
@@ -195,6 +199,7 @@ def test_structured_logger_convenience_methods():
 # ============================================================================
 # TrainingMetrics Tests
 # ============================================================================
+
 
 def test_training_metrics_init():
     """Test TrainingMetrics initialization."""
@@ -207,10 +212,10 @@ def test_training_metrics_init():
 def test_training_metrics_inc():
     """Test incrementing counters."""
     metrics = TrainingMetrics()
-    
+
     metrics.inc("loss", 0.5)
     metrics.inc("loss", 0.3)
-    
+
     snapshot = metrics.snapshot()
     assert snapshot["counters"]["loss"] == 0.8
 
@@ -218,10 +223,10 @@ def test_training_metrics_inc():
 def test_training_metrics_inc_default_value():
     """Test increment with default value of 1.0."""
     metrics = TrainingMetrics()
-    
+
     metrics.inc("steps")
     metrics.inc("steps")
-    
+
     snapshot = metrics.snapshot()
     assert snapshot["counters"]["steps"] == 2.0
 
@@ -229,10 +234,10 @@ def test_training_metrics_inc_default_value():
 def test_training_metrics_set_gauge():
     """Test setting gauge values."""
     metrics = TrainingMetrics()
-    
+
     metrics.set_gauge("vram_used_mb", 4096.0)
     metrics.set_gauge("vram_used_mb", 8192.0)
-    
+
     snapshot = metrics.snapshot()
     assert snapshot["gauges"]["vram_used_mb"] == 8192.0
 
@@ -240,19 +245,19 @@ def test_training_metrics_set_gauge():
 def test_training_metrics_thread_safety():
     """Test that metrics are thread-safe (basic check)."""
     import threading
-    
+
     metrics = TrainingMetrics()
-    
+
     def worker():
         for _ in range(100):
             metrics.inc("counter")
-    
+
     threads = [threading.Thread(target=worker) for _ in range(5)]
     for t in threads:
         t.start()
     for t in threads:
         t.join()
-    
+
     snapshot = metrics.snapshot()
     # 5 threads * 100 increments = 500
     assert snapshot["counters"]["counter"] == 500.0
@@ -263,7 +268,7 @@ def test_training_metrics_render():
     metrics = TrainingMetrics()
     metrics.inc("training_steps", 100)
     metrics.set_gauge("learning_rate", 0.001)
-    
+
     rendered = metrics.render()
     assert "training_steps_total" in rendered
     assert "learning_rate" in rendered
