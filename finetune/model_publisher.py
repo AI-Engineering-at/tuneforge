@@ -427,30 +427,44 @@ class HFPublisher:
         from dataclasses import asdict
 
         job_id = f"publish-{card.model_name}"
-        pre_publish_zeroth_check(asdict(card), asdict(manifest), job_id=job_id)
+        try:
+            pre_publish_zeroth_check(asdict(card), asdict(manifest), job_id=job_id)
+        except Exception as exc:
+            logger.error("Zeroth pre-publish check failed: %s", exc)
+            raise RuntimeError(f"Publishing blocked: Zeroth check failed - {exc}") from exc
         # ----------------------------------------------------
 
-        write_release_bundle(
-            adapter_path=adapter_path,
-            card=card,
-            manifest=manifest,
-            benchmark=benchmark,
-            license_manifest=license_manifest,
-            environment_manifest=environment_manifest,
-            tester_attestation=tester_attestation,
-            gguf_filename=gguf_filename,
-            ollama_model_name=ollama_model_name,
-            system_prompt=system_prompt,
-        )
+        try:
+            write_release_bundle(
+                adapter_path=adapter_path,
+                card=card,
+                manifest=manifest,
+                benchmark=benchmark,
+                license_manifest=license_manifest,
+                environment_manifest=environment_manifest,
+                tester_attestation=tester_attestation,
+                gguf_filename=gguf_filename,
+                ollama_model_name=ollama_model_name,
+                system_prompt=system_prompt,
+            )
+        except OSError as exc:
+            logger.error("Failed to write release bundle: %s", exc)
+            raise RuntimeError(f"Publishing failed: Could not write release bundle - {exc}") from exc
 
-        api = HfApi(token=self.token)
-        api.create_repo(card.model_name, exist_ok=True)
-        api.upload_folder(
-            folder_path=adapter_path,
-            repo_id=card.model_name,
-            commit_message=f"Publish {card.model_name} TuneForge release bundle",
-        )
-        logger.info("Published to https://huggingface.co/%s", card.model_name)
+        try:
+            api = HfApi(token=self.token)
+            api.create_repo(card.model_name, exist_ok=True)
+            api.upload_folder(
+                folder_path=adapter_path,
+                repo_id=card.model_name,
+                commit_message=f"Publish {card.model_name} TuneForge release bundle",
+            )
+            logger.info("Published to https://huggingface.co/%s", card.model_name)
+        except Exception as exc:
+            logger.error("HuggingFace upload failed: %s", exc)
+            raise RuntimeError(
+                f"Publishing failed: HuggingFace Hub upload error - {exc}. Check your HF_TOKEN and network connection."
+            ) from exc
 
 
 class GGUFConverter:

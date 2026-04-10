@@ -119,7 +119,7 @@ class ZerothClient:
             headers = {"Content-Type": "application/json"}
             if self.jwt_token:
                 headers["Authorization"] = f"Bearer {self.jwt_token}"
-            
+
             response = self._session.post(
                 f"{self.base_url}/evaluate",
                 json=payload,

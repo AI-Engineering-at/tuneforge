@@ -202,7 +202,7 @@ class AegisClient:
         self._mock_mode = os.environ.get("ZEROTH_MOCK_MODE", "0") == "1"
         self._log = StructuredLogger("tuneforge.aegis_client")
         self._timeout_sec = int(os.environ.get("AEGIS_TIMEOUT_SEC", "5"))
-        
+
         # MOCK_MODE safety checks
         if self._mock_mode:
             self._log.warn(
@@ -216,6 +216,7 @@ class AegisClient:
                     message="FATAL: ZEROTH_MOCK_MODE=1 in production environment. Exiting.",
                 )
                 import sys
+
                 sys.exit(1)
 
     def _headers(self) -> Dict[str, str]:
