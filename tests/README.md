@@ -5,9 +5,9 @@
 This directory contains the complete test suite for TuneForge.
 
 **Stats:**
-- Total tests: 232
-- Passing: 232
-- Skipped: 2 (1 GPU-dependent, 1 environment-specific)
+- Total tests: 241
+- Passing: 239
+- Skipped: 2 (documented below)
 - Coverage: ~78%
 
 ---
@@ -112,7 +112,34 @@ Tests for safety-critical functionality.
 
 ## Skipped Tests
 
-### test_import_hf_datasets_module
+### 1. test_gguf_converter_initialization
+
+**Location:** `tests/integration/test_export_pipeline.py::TestGGUFConversion`
+
+**Reason:** Requires `llama.cpp` binary (external dependency)
+
+**Skip decorator:**
+```python
+@pytest.mark.skip(reason="Requires llama.cpp - run manually")
+```
+
+**Details:**
+- GGUF conversion requires the `llama.cpp` toolchain
+- Not installed in standard test environment
+- Functionality verified manually when needed
+- **Not a bug** - optional feature with external dependency
+
+**To run manually:**
+```bash
+# Install llama.cpp first, then:
+python -m pytest tests/integration/test_export_pipeline.py::TestGGUFConversion -v
+```
+
+**Impact:** Low - GGUF conversion tested manually when llama.cpp available
+
+---
+
+### 2. test_import_hf_datasets_module
 
 **Location:** `tests/test_trainer_coverage.py`
 
@@ -123,18 +150,24 @@ Tests for safety-critical functionality.
 @pytest.mark.skip(reason="PyArrow environment issue - not a code bug")
 ```
 
-**Impact:** Low - tests HuggingFace datasets import which works in production
+**Details:**
+- Tests the `import_hf_datasets_module()` helper function
+- PyArrow version conflict in test environment causes import failure
+- Function works correctly in production environments
+- **Not a bug** - environment-specific import ordering issue
 
-### GPU Tests
+**Impact:** Low - HuggingFace datasets import works in production
 
-**Location:** Various test files
+---
 
-**Pattern:**
-```python
-@pytest.mark.skipif(not torch.cuda.is_available(), reason="CUDA not available")
-```
+### Summary
 
-**Impact:** None - GPU functionality tested in CI with CUDA runners
+| Test | Reason | Fixable? | Action Required |
+|------|--------|----------|-----------------|
+| `test_gguf_converter_initialization` | Missing llama.cpp binary | No (external dep) | Documented skip |
+| `test_import_hf_datasets_module` | PyArrow env conflict | No (env issue) | Documented skip |
+
+**Note:** Neither skip masks a code bug. Both are environment-specific limitations.
 
 ---
 
