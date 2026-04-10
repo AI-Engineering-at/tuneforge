@@ -16,7 +16,14 @@ This document contains evaluation results for TuneForge's safety claims.
 | "Gradient-level safety" | ⏳ PENDING | Section 2: Gradient Surgery Verification |
 | "Mathematical guarantees" | ⏳ PENDING | Section 2: Orthogonality proofs |
 | "Prevents safety degradation" | ⏳ PENDING | Section 1: Safety Benchmark |
-| "Fail-closed design" | ✅ VERIFIED | Section 3: Contract 3 Tests (15/15 passing) |
+| "Fail-closed design" | ✅ VERIFIED | Section 3: Contract 3 Tests (7/7 passing) |
+
+### Hardware Status
+
+**Target:** RTX 3090 (10.40.10.90:11434)  
+**Connection:** ✅ API reachable  
+**Latency:** ~10-15s per prompt (too slow for interactive eval)  
+**Action Required:** Execute benchmarks directly on .90 (see docs/HARDWARE_EVAL_RUNBOOK.md)
 
 ---
 

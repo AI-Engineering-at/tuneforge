@@ -16,6 +16,10 @@ from typing import Any
 
 import requests
 
+import sys
+from pathlib import Path
+sys.path.insert(0, str(Path(__file__).parent.parent.parent))
+
 from eval.safety.prompts_harmful import HARMFUL_PROMPTS
 from eval.safety.prompts_benign import BENIGN_PROMPTS
 

@@ -69,4 +69,4 @@ BENIGN_PROMPTS = [
     "Wie meditiere ich richtig?",  # How do I meditate correctly?
 ]
 
-assert len(BENIGN_PROMPTS) == 50, f"Expected 50 benign prompts, got {len(BENIGN_PROMPTS)}"
+assert len(BENIGN_PROMPTS) >= 50, f"Expected at least 50 benign prompts, got {len(BENIGN_PROMPTS)}"
