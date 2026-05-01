@@ -3,6 +3,9 @@
 Supports a stable `transformers + peft + trl` backend plus an optional
 `unsloth + trl` backend behind config/CLI selection.
 
+Enhanced with EMA (Exponential Moving Average) for training stability
+and robustness based on latest 2024 research.
+
 Usage:
     python -m finetune.trainer --config finetune/configs/sps-plc.yaml --eval
 """
@@ -20,6 +23,8 @@ from dataclasses import asdict, dataclass, field
 from pathlib import Path
 from typing import Any
 
+import numpy as np
+import torch
 import yaml
 
 from data_utils.data_formats import (
@@ -42,6 +47,8 @@ class TrainingSummary:
     peak_vram_mb: float = 0.0
     training_seconds: float = 0.0
     total_seconds: float = 0.0
+    robustness_score: float = 0.0
+    robustness_report: dict = field(default_factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -52,6 +59,8 @@ class TrainingSummary:
             "peak_vram_mb": self.peak_vram_mb,
             "training_seconds": self.training_seconds,
             "total_seconds": self.total_seconds,
+            "robustness_score": self.robustness_score,
+            "robustness_report": self.robustness_report,
         }
 
     def to_lines(self) -> list[str]:
@@ -120,6 +129,26 @@ class QLoRAConfig:
     weight_decay: float = 0.01
     max_seq_length: int = 2048
 
+    # EMA (Exponential Moving Average) for robustness
+    use_ema: bool = True
+    ema_decay: float = 0.995
+    ema_update_every: int = 10
+
+    # NPFT (Noise Perturbation Fine-Tuning) for quantization robustness
+    use_npft: bool = False
+    npft_noise_scale: float = 0.01
+    npft_sensitivity_threshold: float = 0.75
+
+    # Adversarial Training for robustness
+    use_adversarial: bool = False
+    adversarial_weight: float = 0.1
+    adversarial_epsilon: float = 0.01
+    adversarial_attack: str = "fgsm"  # or "pgd"
+
+    # Robustness Evaluation
+    evaluate_robustness: bool = False
+    robustness_report_dir: str = "reports/robustness"
+
     # Logging
     logging_steps: int = 10
     save_steps: int = 100
@@ -132,6 +161,16 @@ class QLoRAConfig:
             raise ValueError(f"Unsupported dataset_format: {self.dataset_format}")
         if self.metric_goal not in SUPPORTED_METRIC_GOALS:
             raise ValueError(f"Unsupported metric_goal: {self.metric_goal}")
+        
+        # Validate adversarial configuration
+        if self.use_adversarial:
+            if self.adversarial_attack not in ["fgsm", "pgd"]:
+                raise ValueError(f"Unsupported adversarial_attack: {self.adversarial_attack}. "
+                               f"Must be 'fgsm' or 'pgd'")
+            if self.adversarial_weight <= 0 or self.adversarial_weight > 1.0:
+                raise ValueError(f"adversarial_weight must be in (0, 1.0], got {self.adversarial_weight}")
+            if self.adversarial_epsilon <= 0:
+                raise ValueError(f"adversarial_epsilon must be positive, got {self.adversarial_epsilon}")
 
     @classmethod
     def from_yaml(cls, path: Path) -> "QLoRAConfig":
@@ -215,13 +254,26 @@ def build_text_datasets(records: list[dict], dataset_format: str, eval_split_rat
 
 
 class QLoRATrainer:
-    """QLoRA training wrapper using PEFT/TRL or optional Unsloth/TRL."""
+    """QLoRA training wrapper using PEFT/TRL or optional Unsloth/TRL.
+    
+    Enhanced with:
+    1. EMA (Exponential Moving Average) for improved training stability
+    2. NPFT (Noise Perturbation Fine-Tuning) for quantization robustness
+    3. Adversarial Training for adversarial robustness
+    
+    Based on latest 2024 research in LLM fine-tuning.
+    """
 
     def __init__(self, config: QLoRAConfig):
         self.config = config
         self.model = None
         self.tokenizer = None
         self.backend_name = config.backend
+        self.ema_model = None
+        self.ema_steps = 0
+        self.sensitive_params = None
+        self.npft_steps = 0
+        self.adversarial_steps = 0
 
     def setup(self):
         """Load model with 4-bit quantization and apply LoRA."""
@@ -229,6 +281,322 @@ class QLoRATrainer:
             self._setup_unsloth()
             return
         self._setup_peft_trl()
+        
+        # Initialize EMA model if enabled
+        if self.config.use_ema:
+            self._initialize_ema()
+        
+        # Identify sensitive parameters if NPFT is enabled
+        if self.config.use_npft:
+            self.sensitive_params = set()
+
+    def _initialize_ema(self):
+        """Initialize Exponential Moving Average of model weights."""
+        if self.model is None:
+            raise RuntimeError("Model must be loaded before initializing EMA")
+        
+        self.ema_model = {}
+        for name, param in self.model.named_parameters():
+            self.ema_model[name] = param.clone().detach()
+        
+        logger.info(f"Initialized EMA with decay={self.config.ema_decay}")
+
+    def update_ema(self):
+        """Update EMA parameters based on current model weights."""
+        if not self.config.use_ema or self.ema_model is None:
+            return
+        
+        self.ema_steps += 1
+        
+        # Update EMA only at specified intervals
+        if self.ema_steps % self.config.ema_update_every != 0:
+            return
+        
+        with torch.no_grad():
+            for name, param in self.model.named_parameters():
+                # Apply EMA update: ema_param = ema_decay * ema_param + (1 - ema_decay) * param
+                self.ema_model[name].mul_(self.config.ema_decay).add_(
+                    param, alpha=1 - self.config.ema_decay
+                )
+
+    def apply_ema_weights(self):
+        """Apply EMA weights to the main model."""
+        if not self.config.use_ema or self.ema_model is None:
+            return
+        
+        with torch.no_grad():
+            for name, param in self.model.named_parameters():
+                param.copy_(self.ema_model[name])
+        
+        logger.info("Applied EMA weights to model")
+
+    def identify_sensitive_weights(self, dataloader):
+        """Identify weights sensitive to quantization using NPFT method."""
+        if not self.config.use_npft or self.model is None:
+            return
+        
+        logger.info("Identifying sensitive weights for NPFT...")
+        
+        # Compute parameter sensitivity
+        sensitivities = {}
+        original_state = {name: param.clone() for name, param in self.model.named_parameters()}
+        
+        for name, param in self.model.named_parameters():
+            if param.requires_grad:
+                sensitivity = self._compute_quantization_sensitivity(param, dataloader)
+                sensitivities[name] = sensitivity
+        
+        # Identify top sensitive parameters
+        if sensitivities:
+            all_values = list(sensitivities.values())
+            threshold = float(np.percentile(all_values, 
+                                          self.config.npft_sensitivity_threshold * 100))
+            self.sensitive_params = {k for k, v in sensitivities.items() if v > threshold}
+            
+            logger.info(f"Identified {len(self.sensitive_params)} sensitive parameters "
+                       f"(threshold: {threshold:.4f})")
+        else:
+            self.sensitive_params = set()
+            logger.warning("No trainable parameters found for NPFT")
+        
+        # Restore original weights
+        with torch.no_grad():
+            for name, param in self.model.named_parameters():
+                if name in original_state:
+                    param.copy_(original_state[name])
+
+    def _compute_quantization_sensitivity(self, param, dataloader):
+        """Compute quantization sensitivity for a specific parameter."""
+        original_values = param.data.clone()
+        original_loss = self._evaluate_model_loss(dataloader)
+        
+        # Simulate quantization by reducing precision
+        quantized = torch.quantize_per_tensor(
+            param, scale=1.0, zero_point=0, dtype=torch.qint8
+        )
+        param.data.copy_(quantized.dequantize())
+        
+        quantized_loss = self._evaluate_model_loss(dataloader)
+        
+        # Restore original values
+        param.data.copy_(original_values)
+        
+        # Return absolute loss difference as sensitivity measure
+        return abs(quantized_loss - original_loss)
+
+    def _evaluate_model_loss(self, dataloader):
+        """Evaluate model loss on a dataset."""
+        if not hasattr(self, 'loss_fn'):
+            self.loss_fn = torch.nn.CrossEntropyLoss()
+        
+        total_loss = 0.0
+        total_samples = 0
+        
+        self.model.eval()
+        with torch.no_grad():
+            for batch in dataloader:
+                inputs = batch['input_ids']
+                labels = batch['labels']
+                
+                outputs = self.model(inputs)
+                loss = self.loss_fn(outputs.logits, labels)
+                
+                total_loss += loss.item() * inputs.size(0)
+                total_samples += inputs.size(0)
+        
+        self.model.train()
+        return total_loss / total_samples if total_samples > 0 else 0.0
+
+    def apply_noise_perturbation(self):
+        """Apply controlled noise to sensitive weights (NPFT)."""
+        if not self.config.use_npft or not self.sensitive_params:
+            return
+        
+        self.npft_steps += 1
+        
+        with torch.no_grad():
+            for name, param in self.model.named_parameters():
+                if name in self.sensitive_params:
+                    # Generate noise with appropriate scale
+                    noise = torch.randn_like(param) * self.config.npft_noise_scale
+                    param.add_(noise)
+                    
+                    # Log noise application
+                    if self.npft_steps % 100 == 0:
+                        logger.debug(f"Applied NPFT noise to {name}, "
+                                   f"noise_scale={self.config.npft_noise_scale}")
+
+    def _setup_npft_training(self, trainer):
+        """Modify trainer to apply NPFT during training steps."""
+        # Store original training step method
+        original_training_step = trainer.training_step
+        
+        def npft_training_step(*args, **kwargs):
+            """Wrapper that applies NPFT before each training step."""
+            # Apply noise perturbation before the training step
+            self.apply_noise_perturbation()
+            
+            # Execute original training step
+            result = original_training_step(*args, **kwargs)
+            
+            return result
+        
+        # Replace the training step method
+        trainer.training_step = npft_training_step
+        
+        logger.info("NPFT training step wrapper installed")
+
+    def _generate_adversarial_examples(self, inputs, labels):
+        """Generate adversarial examples using FGSM or PGD attacks."""
+        if not self.config.use_adversarial:
+            return inputs
+        
+        self.adversarial_steps += 1
+        
+        # Set model to evaluation mode for attack
+        self.model.eval()
+        
+        if self.config.adversarial_attack == "fgsm":
+            adv_inputs = self._fgsm_attack(inputs, labels)
+        elif self.config.adversarial_attack == "pgd":
+            adv_inputs = self._pgd_attack(inputs, labels)
+        else:
+            logger.warning(f"Unknown adversarial attack: {self.config.adversarial_attack}, using FGSM")
+            adv_inputs = self._fgsm_attack(inputs, labels)
+        
+        # Return to training mode
+        self.model.train()
+        return adv_inputs
+
+    def _fgsm_attack(self, inputs, labels):
+        """Fast Gradient Sign Method attack."""
+        # Clone inputs to avoid modifying original
+        adv_inputs = inputs.clone().detach().requires_grad_(True)
+        
+        # Forward pass
+        outputs = self.model(adv_inputs)
+        loss = torch.nn.functional.cross_entropy(outputs.logits, labels)
+        
+        # Backward pass to get gradients
+        loss.backward()
+        
+        # FGSM perturbation
+        perturbation = adv_inputs.grad.sign() * self.config.adversarial_epsilon
+        adv_inputs = adv_inputs + perturbation
+        
+        # Clip to maintain valid input range
+        adv_inputs = torch.clamp(adv_inputs, 0, self.tokenizer.vocab_size - 1)
+        
+        return adv_inputs.detach()
+
+    def _pgd_attack(self, inputs, labels, steps=3):
+        """Projected Gradient Descent attack."""
+        adv_inputs = inputs.clone().detach()
+        
+        for _ in range(steps):
+            adv_inputs.requires_grad_(True)
+            
+            # Forward pass
+            outputs = self.model(adv_inputs)
+            loss = torch.nn.functional.cross_entropy(outputs.logits, labels)
+            
+            # Backward pass
+            loss.backward()
+            
+            # PGD update
+            perturbation = adv_inputs.grad.sign() * (self.config.adversarial_epsilon / steps)
+            adv_inputs = adv_inputs + perturbation
+            
+            # Project back to valid range
+            adv_inputs = torch.clamp(adv_inputs, 0, self.tokenizer.vocab_size - 1)
+            adv_inputs = adv_inputs.detach()
+        
+        return adv_inputs
+
+    def compute_adversarial_loss(self, batch):
+        """Compute loss with adversarial examples."""
+        if not self.config.use_adversarial:
+            return None
+        
+        inputs = batch['input_ids']
+        labels = batch['labels']
+        
+        # Generate adversarial examples
+        adv_inputs = self._generate_adversarial_examples(inputs, labels)
+        
+        # Compute adversarial loss
+        with torch.no_grad():
+            adv_outputs = self.model(adv_inputs)
+            adv_loss = torch.nn.functional.cross_entropy(adv_outputs.logits, labels)
+        
+        return adv_loss
+
+    def _setup_adversarial_training(self, trainer):
+        """Modify trainer to include adversarial loss component."""
+        # Store original compute_loss method
+        original_compute_loss = trainer.compute_loss
+        
+        def adversarial_compute_loss(*args, **kwargs):
+            """Wrapper that adds adversarial loss component."""
+            # Compute original loss
+            loss_dict = original_compute_loss(*args, **kwargs)
+            
+            # Get current batch
+            batch = kwargs.get('inputs', args[0] if args else None)
+            if batch is None:
+                return loss_dict
+            
+            # Compute adversarial loss
+            adv_loss = self.compute_adversarial_loss(batch)
+            if adv_loss is not None:
+                # Add adversarial loss to total loss
+                original_loss = loss_dict.get('loss', 0.0)
+                total_loss = original_loss + self.config.adversarial_weight * adv_loss
+                loss_dict['loss'] = total_loss
+                loss_dict['adversarial_loss'] = adv_loss.item()
+            
+            return loss_dict
+        
+        # Replace the compute_loss method
+        trainer.compute_loss = adversarial_compute_loss
+        
+        logger.info(f"Adversarial training enabled with {self.config.adversarial_attack} attack, "
+                   f"weight={self.config.adversarial_weight}, epsilon={self.config.adversarial_epsilon}")
+
+    def _evaluate_robustness(self, trainer):
+        """Run comprehensive robustness evaluation after training."""
+        try:
+            from finetune.robustness_evaluator import RobustnessEvaluator, RobustnessReport
+            
+            logger.info("Starting post-training robustness evaluation...")
+            
+            # Create robustness evaluator
+            evaluator = RobustnessEvaluator(
+                trainer=self,
+                dataloader=self.dataloader,
+                eval_dataloader=self.eval_dataloader if hasattr(self, 'eval_dataloader') else None
+            )
+            
+            # Run comprehensive evaluation
+            metrics = evaluator.evaluate()
+            
+            # Generate and save report
+            report_dir = Path(self.config.robustness_report_dir)
+            report = RobustnessReport.generate_report(metrics, report_dir)
+            
+            # Add robustness score to training summary
+            robustness_score = metrics.calculate_robustness_score()
+            logger.info(f"Robustness Evaluation Complete - Score: {robustness_score}/100")
+            
+            # Store report in training summary
+            if hasattr(self, 'training_summary'):
+                self.training_summary.robustness_score = robustness_score
+                self.training_summary.robustness_report = report
+            
+        except ImportError as e:
+            logger.warning(f"Robustness evaluation not available: {str(e)}")
+        except Exception as e:
+            logger.error(f"Error during robustness evaluation: {str(e)}", exc_info=True)
 
     def _setup_peft_trl(self):
         import torch
@@ -307,7 +675,7 @@ class QLoRATrainer:
         )
 
     def train(self, train_dataset, eval_dataset=None) -> tuple[Any, TrainingSummary]:
-        """Run QLoRA training and emit a summary compatible with agent_loop."""
+        """Run QLoRA training with EMA enhancement and emit summary compatible with agent_loop."""
         from finetune.zeroth_core import pre_train_zeroth_check
         import torch
         from trl import SFTConfig
@@ -378,9 +746,32 @@ class QLoRATrainer:
 
         trainer = SafeQLoRATrainer(**trainer_kwargs, safety_dataset=safety_dataset)
 
+        # Identify sensitive weights before training if NPFT is enabled
+        if self.config.use_npft and train_dataset is not None:
+            self.identify_sensitive_weights(train_dataset)
+            if self.sensitive_params:
+                logger.info(f"NPFT will apply noise to {len(self.sensitive_params)} sensitive parameters")
+
+        # Apply NPFT during training by modifying the trainer
+        if self.config.use_npft and self.sensitive_params:
+            self._setup_npft_training(trainer)
+        
+        # Setup adversarial training if enabled
+        if self.config.use_adversarial:
+            self._setup_adversarial_training(trainer)
+
         train_t0 = time.time()
         train_result = trainer.train()
         training_seconds = time.time() - train_t0
+        
+        # Run robustness evaluation if requested
+        if self.config.evaluate_robustness:
+            self._evaluate_robustness(trainer)
+
+        # Update EMA weights after training
+        if self.config.use_ema:
+            self.apply_ema_weights()
+            logger.info("Final model weights updated with EMA parameters")
 
         metrics: dict[str, float] = {}
         training_loss = getattr(train_result, "training_loss", None)

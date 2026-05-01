@@ -112,3 +112,15 @@
 {"global_step": 10, "oom_faults": 0, "nan_faults": 0, "surgeries_performed": 0, "shield_active": false, "safety_loss": 0.10000000149011612, "timestamp": 1775829522.9953735}
 {"global_step": 10, "oom_faults": 0, "nan_faults": 2, "surgeries_performed": 2, "shield_active": true, "safety_loss": 0.8999999761581421, "timestamp": 1775829523.009436}
 {"global_step": 10, "oom_faults": 1, "nan_faults": 0, "surgeries_performed": 0, "shield_active": false, "safety_loss": 0.0, "timestamp": 1775829523.0113142}
+{"test": "metric", "timestamp": 1776705773.8199787}
+{"global_step": 10, "oom_faults": 0, "nan_faults": 0, "surgeries_performed": 0, "shield_active": false, "safety_loss": 0.10000000149011612, "timestamp": 1776705773.827427}
+{"global_step": 10, "oom_faults": 0, "nan_faults": 2, "surgeries_performed": 2, "shield_active": true, "safety_loss": 0.8999999761581421, "timestamp": 1776705773.8393483}
+{"global_step": 10, "oom_faults": 1, "nan_faults": 0, "surgeries_performed": 0, "shield_active": false, "safety_loss": 0.0, "timestamp": 1776705773.8408983}
+{"test": "metric", "timestamp": 1776706034.8693686}
+{"global_step": 10, "oom_faults": 0, "nan_faults": 0, "surgeries_performed": 0, "shield_active": false, "safety_loss": 0.10000000149011612, "timestamp": 1776706034.871417}
+{"global_step": 10, "oom_faults": 0, "nan_faults": 2, "surgeries_performed": 2, "shield_active": true, "safety_loss": 0.8999999761581421, "timestamp": 1776706034.8737197}
+{"global_step": 10, "oom_faults": 1, "nan_faults": 0, "surgeries_performed": 0, "shield_active": false, "safety_loss": 0.0, "timestamp": 1776706034.8753326}
+{"test": "metric", "timestamp": 1776706057.9582777}
+{"global_step": 10, "oom_faults": 0, "nan_faults": 0, "surgeries_performed": 0, "shield_active": false, "safety_loss": 0.10000000149011612, "timestamp": 1776706057.9602776}
+{"global_step": 10, "oom_faults": 0, "nan_faults": 2, "surgeries_performed": 2, "shield_active": true, "safety_loss": 0.8999999761581421, "timestamp": 1776706057.9625733}
+{"global_step": 10, "oom_faults": 1, "nan_faults": 0, "surgeries_performed": 0, "shield_active": false, "safety_loss": 0.0, "timestamp": 1776706057.9641495}
