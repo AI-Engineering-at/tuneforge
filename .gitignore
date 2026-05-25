@@ -30,3 +30,5 @@ results/
 
 # Frontend or package caches
 node_modules/
+# Local Claude Code configuration (interne Doktrin/Workflows)
+.claude/
